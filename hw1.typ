@@ -22,8 +22,6 @@
 
 
 #let ids = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27);
-#let col-gut = ids.map(id => if (calc.rem(id, 3) == 0) { 2.2pt } else { auto });
-
 
 #table(
   columns: 2,
@@ -171,7 +169,7 @@
 
   #align(
     center,
-    sym.arrow.b + " у " + ptr(13) + " нет полей указывающих на непомеченные блоки, выходим вверх по " + text[_стеку_],
+    sym.arrow.b + " у " + ptr(13) + " нет непомеченных полей-указателей, выходим вверх по " + text[_стеку_],
   )
 
   #table(
@@ -248,7 +246,7 @@
     marked_object((val(3), nullptr, replaced(ptr(16))))
   )
 
-  #align(center, sym.arrow.b + " не непомеченных полей-указателей")
+  #align(center, sym.arrow.b + " у " + ptr(1) + " нет непомеченных полей-указателей")
 
   #table(
     stroke: none,
