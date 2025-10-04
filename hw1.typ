@@ -18,45 +18,44 @@
   ..content.map(c => [#c])
 )];
 
-#let marked_object(content) = object(content, color: yellow);
-
-
 #let ids = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27);
 
-#table(
-  columns: 2,
-  stroke: none,
-  align: horizon,
-
-  [Корни],
+#figure(
   table(
-    columns: 4,
-    [#val(3)], [#ptr(10)], [#val(2)], [#val(9)],
-  ),
-
-  [Куча],
-  table(
+    columns: 2,
     stroke: none,
-    row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
-    align: center,
-    ..ids.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((val(7), nullptr, ptr(13))),
-    object((val(8), ptr(16), nullptr)),
-    object((val(9), val(10), ptr(16))),
-    object((val(2), ptr(7), ptr(25))),
-    object((val(4), ptr(4), ptr(22))),
-    object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1)))
+    align: (right + horizon, left + horizon),
+
+    [Корни],
+    table(
+      columns: 4,
+      [#val(3)], [#ptr(10)], [#val(2)], [#val(9)],
+    ),
+
+    [Куча],
+    table(
+      stroke: none,
+      row-gutter: (-0.5em, auto),
+      columns: ids.len(),
+      align: center,
+      ..ids.map(id => table.cell(stroke: none)[#id]),
+      object((val(5), nullptr, ptr(7))),
+      object((val(1), ptr(19), nullptr)),
+      object((val(7), nullptr, ptr(13))),
+      object((val(8), ptr(16), nullptr)),
+      object((val(9), val(10), ptr(16))),
+      object((val(2), ptr(7), ptr(25))),
+      object((val(4), ptr(4), ptr(22))),
+      object((val(6), ptr(19), ptr(4))),
+      object((val(3), nullptr, ptr(1)))
+    ),
   ),
-)
-
-
+  caption: [Пример состояния памяти какой-то программы.],
+  supplement: "Рис",
+)<r1>
 
 #task("1")[
-  Примените алгоритм обхода в глубину с разворотом указателей [1, Algorithm 13.6] к состоянию памяти представленному на рис. 1 и ответьте на вопросы:
+  Примените алгоритм обхода в глубину с разворотом указателей [1, Algorithm 13.6] к состоянию памяти представленному на #ref(<r1>) и ответьте на вопросы:
   1. Какие блоки памяти (достаточно указать адреса начала блоков) будут _помечены_ по итогу работы алгоритма?
   2. Каково будет состояние кучи и локальных переменных алгоритма в момент, когда будет помечен блок со значением #val(7) в первом поле?
     1. Необходимо указать значения во всех ячейках памяти в куче или указать ячейки, которые имеют значение, отличное от исходного.
@@ -66,9 +65,12 @@
   4. Какова амортизированная стоимость сборки мусора (в терминах операции записи/изменения памяти в куче и массиве `done`) на данном примере?
 ]
 #solution()[
+  #let marked_object(content) = object(content, color: yellow);
+
   #let replaced(it) = table.cell(fill: blue)[#it]
 
   Обозначения:
+  - ...обозначения из задания
   - #box(object((val(8), ptr(16), nullptr), color: yellow)) -- помеченный блок.
   - #box(object((val(8), replaced(nullptr), nullptr))) -- второе поле временно перезаписано.
 
@@ -77,7 +79,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     object((val(5), nullptr, ptr(7))),
@@ -96,7 +98,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     object((val(5), nullptr, ptr(7))),
@@ -115,7 +117,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     object((val(5), nullptr, ptr(7))),
@@ -134,7 +136,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     object((val(5), nullptr, ptr(7))),
@@ -153,7 +155,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     object((val(5), nullptr, ptr(7))),
@@ -175,7 +177,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     object((val(5), nullptr, ptr(7))),
@@ -194,7 +196,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     object((val(5), nullptr, ptr(7))),
@@ -213,7 +215,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     object((val(5), nullptr, ptr(7))),
@@ -232,7 +234,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     marked_object((val(5), nullptr, ptr(7))),
@@ -251,7 +253,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     marked_object((val(5), nullptr, ptr(7))),
@@ -270,7 +272,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     marked_object((val(5), nullptr, ptr(7))),
@@ -289,7 +291,7 @@
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
-    columns: calc.floor(ids.len()),
+    columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
     marked_object((val(5), nullptr, ptr(7))),
@@ -309,7 +311,7 @@
     1. #table(
         stroke: none,
         row-gutter: (-0.5em, auto),
-        columns: calc.floor(ids.len()),
+        columns: ids.len(),
         align: center,
         ..ids.map(id => table.cell(stroke: none)[#id]),
         object((val(5), nullptr, ptr(7))),
@@ -326,4 +328,83 @@
     3. Переменные: t = #ptr(16), x = #ptr(7), y = #ptr(7)
   3. 5 (массив `done`) + 10 (изменения в куче) = 15 операций записи
   4. $ (c_1 R + c_2 H) / (H - R) = (10 dot (5 dot 3) + 3 dot (8 dot 3)) / (8 dot 3 - 5 dot 3) = 74/3 = 24 2/3 $
+]
+
+#task("2")[
+  Примените алгоритм сборки мусора копированием [1, Algorithm 13.9] с гибридным перенаправлением указателей [1, Algorithm 13.11], к состоянию памяти представленному на #ref(<r1>) и ответьте на вопросы ниже. В контексте сборки копированием, раздел _from-space_ включает адреса с 1 до 30 (включительно), а раздел _to-space_ — адреса с 31 до 60 (включительно).
+
+  1. Каково состояние кучи после работы алгоритма?
+  2. Какой адрес $p_1$ (в _to-space_) соответсвует адресу 1 из _from-space_? То есть, по какому адресу будет находится объект по адресу #ptr(1) после копирования?
+  3. Каково состояние кучи в момент вызова процедуры *`Forward`*($p_1$), где $p_1$ — адрес _копии_ данных, которые находились по адресу #ptr(4) до сборки?
+  4. Сколько операций записи (изменения) памяти в _куче_ требуется для алгоритма на данном примере? Считайте, что копирование одного машинного слова (из _from-space_ в _to-space_) — это одна операция.
+  5. Какова амортизированная стоимость сборки мусора (то есть количество операций записи/изменения памяти в куче на количество собранного мусора) на данном примере?
+]
+#solution()[
+  #let from_space = ()
+  #for i in range(30) { from_space.push(i + 1) }
+  #let to_space = from_space.map(x => x + 30);
+
+  #let object(content, color: white) = table.cell(colspan: content.len(), inset: (x: 1.1pt))[ #table(
+    columns: content.len(),
+    fill: color,
+    ..content.map(c => [#c])
+  )];
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: from_space.len(),
+    ..from_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(5), nullptr, ptr(7))),
+    object((val(1), ptr(19), nullptr)),
+    object((val(7), nullptr, ptr(13))),
+    object((val(8), ptr(16), nullptr)),
+    object((val(9), val(10), ptr(16))),
+    object((val(2), ptr(7), ptr(25))),
+    object((val(4), ptr(4), ptr(22))),
+    object((val(6), ptr(19), ptr(4))),
+    object((val(3), nullptr, ptr(1))),
+    object((val(3), nullptr, ptr(1))),
+    //
+    ..range(0).map(_ => table.cell[ ]),
+    (
+      table(
+        stroke: none,
+        columns: 1,
+        sym.arrow.t,
+        raw("scan"),
+      )
+    ),
+  )
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(0).map(_ => table.cell[ ]),
+    (
+      table(
+        stroke: none,
+        columns: 1,
+        sym.arrow.t,
+        raw("next"),
+      )
+    ),
+  )
 ]
