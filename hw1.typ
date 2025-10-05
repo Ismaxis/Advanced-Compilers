@@ -306,7 +306,7 @@
   )
 
   Ответы:
-  1. Адреса помеченных блоков: 1, 7, 10, 16, 25
+  1. Адреса помеченных блоков: 1, 7, 10, 13, 16, 25
   2. Состояние памяти в момент пометки блока со значением #val(7) в первом поле:
     1. #table(
         stroke: none,
@@ -326,9 +326,11 @@
       )
     2. Массив done: [0,0,0,1,0,1,0,0,0]
     3. Переменные: t = #ptr(16), x = #ptr(7), y = #ptr(7)
-  3. 5 (массив `done`) + 10 (изменения в куче) = 15 операций записи
-  4. $ (c_1 R + c_2 H) / (H - R) = (10 dot (5 dot 3) + 3 dot (8 dot 3)) / (8 dot 3 - 5 dot 3) = 74/3 = 24 2/3 $
+  3. 6 (массив `done`) + 10 (изменения в куче) = 16 операций записи
+  4. $ (c_1 R + c_2 H) / (H - R) = (10 dot (6 dot 3) + 3 dot 27) / (27 - 6 dot 3) = 29 $
 ]
+
+#pagebreak()
 
 #task("2")[
   Примените алгоритм сборки мусора копированием [1, Algorithm 13.9] с гибридным перенаправлением указателей [1, Algorithm 13.11], к состоянию памяти представленному на #ref(<r1>) и ответьте на вопросы ниже. В контексте сборки копированием, раздел _from-space_ включает адреса с 1 до 30 (включительно), а раздел _to-space_ — адреса с 31 до 60 (включительно).
@@ -340,6 +342,9 @@
   5. Какова амортизированная стоимость сборки мусора (то есть количество операций записи/изменения памяти в куче на количество собранного мусора) на данном примере?
 ]
 #solution()[
+  #let changed(it) = table.cell(fill: blue)[#it]
+
+
   #let from_space = ()
   #for i in range(30) { from_space.push(i + 1) }
   #let to_space = from_space.map(x => x + 30);
@@ -349,6 +354,13 @@
     fill: color,
     ..content.map(c => [#c])
   )];
+
+  #let arrow(text) = table(
+    stroke: none,
+    columns: 1,
+    sym.arrow.t,
+    raw(text),
+  )
 
   #table(
     stroke: none,
@@ -366,17 +378,10 @@
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
     object((val(3), nullptr, ptr(1))),
-    object((val(3), nullptr, ptr(1))),
+    object(("  ", "  ", "  ")),
     //
-    ..range(0).map(_ => table.cell[ ]),
-    (
-      table(
-        stroke: none,
-        columns: 1,
-        sym.arrow.t,
-        raw("scan"),
-      )
-    ),
+    ..range(9).map(_ => table.cell[ ]),
+    arrow("p"),
   )
 
   #table(
@@ -398,13 +403,473 @@
     object(("  ", "  ", "  ")),
     //
     ..range(0).map(_ => table.cell[ ]),
-    (
-      table(
-        stroke: none,
-        columns: 1,
-        sym.arrow.t,
-        raw("next"),
-      )
-    ),
+    arrow("next scan"),
   )
+
+  #align(center, sym.arrow.b + " Forward(" + ptr(10) + ") + первая итерация Chase(" + ptr(10) + ")")
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: from_space.len(),
+    ..from_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(5), nullptr, ptr(7))),
+    object((val(1), ptr(19), nullptr)),
+    object((val(7), nullptr, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((val(9), val(10), ptr(16))),
+    object((val(2), ptr(7), ptr(25))),
+    object((val(4), ptr(4), ptr(22))),
+    object((val(6), ptr(19), ptr(4))),
+    object((val(3), nullptr, ptr(1))),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(15).map(_ => table.cell[ ]),
+    arrow("p"),
+  )
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), ptr(16), nullptr)),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(0).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(2).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " вторая итерация Chase(" + ptr(10) + ")")
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: from_space.len(),
+    ..from_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(5), nullptr, ptr(7))),
+    object((val(1), ptr(19), nullptr)),
+    object((val(7), nullptr, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((val(9), val(10), ptr(16))),
+    object((changed(ptr(34)), ptr(7), ptr(25))),
+    object((val(4), ptr(4), ptr(22))),
+    object((val(6), ptr(19), ptr(4))),
+    object((val(3), nullptr, ptr(1))),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(24).map(_ => table.cell[ ]),
+    arrow("p"),
+  )
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), ptr(16), nullptr)),
+    object((val(2), ptr(7), ptr(25))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(0).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(5).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " 3-я итерация Chase(" + ptr(10) + ")")
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: from_space.len(),
+    ..from_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(5), nullptr, ptr(7))),
+    object((val(1), ptr(19), nullptr)),
+    object((val(7), nullptr, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((val(9), val(10), ptr(16))),
+    object((changed(ptr(34)), ptr(7), ptr(25))),
+    object((val(4), ptr(4), ptr(22))),
+    object((val(6), ptr(19), ptr(4))),
+    object((changed(ptr(37)), nullptr, ptr(1))),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(0).map(_ => table.cell[ ]),
+    arrow("p"),
+  )
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), ptr(16), nullptr)),
+    object((val(2), ptr(7), ptr(25))),
+    object((val(3), nullptr, ptr(1))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(0).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(8).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " 4-я итерация Chase(" + ptr(10) + ")")
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: from_space.len(),
+    ..from_space.map(id => table.cell(stroke: none)[#id]),
+    object((changed(ptr(40)), nullptr, ptr(7))),
+    object((val(1), ptr(19), nullptr)),
+    object((val(7), nullptr, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((val(9), val(10), ptr(16))),
+    object((changed(ptr(34)), ptr(7), ptr(25))),
+    object((val(4), ptr(4), ptr(22))),
+    object((val(6), ptr(19), ptr(4))),
+    object((changed(ptr(37)), nullptr, ptr(1))),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(6).map(_ => table.cell[ ]),
+    arrow("p"),
+  )
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), ptr(16), nullptr)),
+    object((val(2), ptr(7), ptr(25))),
+    object((val(3), nullptr, ptr(1))),
+    object((val(5), nullptr, ptr(7))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(0).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(11).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " 5-я итерация Chase(" + ptr(10) + ")")
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: from_space.len(),
+    ..from_space.map(id => table.cell(stroke: none)[#id]),
+    object((changed(ptr(40)), nullptr, ptr(7))),
+    object((val(1), ptr(19), nullptr)),
+    object((changed(ptr(43)), nullptr, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((val(9), val(10), ptr(16))),
+    object((changed(ptr(34)), ptr(7), ptr(25))),
+    object((val(4), ptr(4), ptr(22))),
+    object((val(6), ptr(19), ptr(4))),
+    object((changed(ptr(37)), nullptr, ptr(1))),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(12).map(_ => table.cell[ ]),
+    arrow("p"),
+  )
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), ptr(16), nullptr)),
+    object((val(2), ptr(7), ptr(25))),
+    object((val(3), nullptr, ptr(1))),
+    object((val(5), nullptr, ptr(7))),
+    object((val(7), nullptr, ptr(13))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(0).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(14).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " 6-я итерация Chase(" + ptr(10) + ")")
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: from_space.len(),
+    ..from_space.map(id => table.cell(stroke: none)[#id]),
+    object((changed(ptr(40)), nullptr, ptr(7))),
+    object((val(1), ptr(19), nullptr)),
+    object((changed(ptr(43)), nullptr, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((changed(ptr(46)), val(10), ptr(16))),
+    object((changed(ptr(34)), ptr(7), ptr(25))),
+    object((val(4), ptr(4), ptr(22))),
+    object((val(6), ptr(19), ptr(4))),
+    object((changed(ptr(37)), nullptr, ptr(1))),
+    object(("  ", "  ", "  ")),
+    //
+    raw("p"),
+    sym.arrow.r,
+    nullptr
+  )
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), ptr(16), nullptr)),
+    object((val(2), ptr(7), ptr(25))),
+    object((val(3), nullptr, ptr(1))),
+    object((val(5), nullptr, ptr(7))),
+    object((val(7), nullptr, ptr(13))),
+    object((val(9), val(10), ptr(16))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(0).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(17).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " 1-я итерация " + `while scan < next`)
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(2), ptr(7), ptr(25))),
+    object((val(3), nullptr, ptr(1))),
+    object((val(5), nullptr, ptr(7))),
+    object((val(7), nullptr, ptr(13))),
+    object((val(9), val(10), ptr(16))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(3).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(14).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " 2-я итерация " + `while scan < next`)
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(2), changed(ptr(43)), changed(ptr(37)))),
+    object((val(3), nullptr, ptr(1))),
+    object((val(5), nullptr, ptr(7))),
+    object((val(7), nullptr, ptr(13))),
+    object((val(9), val(10), ptr(16))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(6).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(11).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " 3-я итерация " + `while scan < next`)
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(2), changed(ptr(43)), changed(ptr(37)))),
+    object((val(3), nullptr, changed(ptr(31)))),
+    object((val(5), nullptr, ptr(7))),
+    object((val(7), nullptr, ptr(13))),
+    object((val(9), val(10), ptr(16))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(9).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(8).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " 4-я итерация " + `while scan < next`)
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(2), changed(ptr(43)), changed(ptr(37)))),
+    object((val(3), nullptr, changed(ptr(31)))),
+    object((val(5), nullptr, changed(ptr(43)))),
+    object((val(7), nullptr, ptr(13))),
+    object((val(9), val(10), ptr(16))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(12).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(5).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " 5-я итерация " + `while scan < next`)
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(2), changed(ptr(43)), changed(ptr(37)))),
+    object((val(3), nullptr, changed(ptr(31)))),
+    object((val(5), nullptr, changed(ptr(43)))),
+    object((val(7), nullptr, changed(ptr(46)))),
+    object((val(9), val(10), ptr(16))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(15).map(_ => table.cell[ ]),
+    arrow("scan"),
+    ..range(2).map(_ => table.cell[ ]),
+    arrow("next"),
+  )
+
+  #align(center, sym.arrow.b + " 6-я итерация " + `while scan < next`)
+
+  #table(
+    stroke: none,
+    row-gutter: (-0.5em, auto),
+    align: center,
+    //
+    columns: to_space.len(),
+    ..to_space.map(id => table.cell(stroke: none)[#id]),
+    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(2), changed(ptr(43)), changed(ptr(37)))),
+    object((val(3), nullptr, changed(ptr(31)))),
+    object((val(5), nullptr, changed(ptr(43)))),
+    object((val(7), nullptr, changed(ptr(46)))),
+    object((val(9), val(10), changed(ptr(34)))),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    object(("  ", "  ", "  ")),
+    //
+    ..range(18).map(_ => table.cell[ ]),
+    arrow("scan next"),
+  )
+
+  Ответы:
+  1. #table(
+      stroke: none,
+      row-gutter: (-0.5em, auto),
+      align: center,
+      //
+      columns: to_space.len(),
+      ..to_space.map(id => table.cell(stroke: none)[#id]),
+      object((val(8), ptr(34), nullptr)),
+      object((val(2), ptr(43), ptr(37))),
+      object((val(3), nullptr, ptr(31))),
+      object((val(5), nullptr, ptr(43))),
+      object((val(7), nullptr, ptr(46))),
+      object((val(9), val(10), ptr(34))),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+    )
+  2. #ptr(40)
+  3. Объект по адресу #ptr(4) недостежим и поэтому у него не будет адреса в _to-space_ и *`Forward`* вызван не будет.
+  4. $R dot ("<кол-во полей> + 1 (перезапись" p.f_1 ")") + "<кол-во указателей в достижимых объектах>" = 6 dot (3 + 1) + 7 = 31$
+  5. $ (c_3 R) / (H/2 - R) = (10 dot (6 dot 3)) / (60 / 2 - 6 dot 3) = 15 $
 ]
