@@ -10,7 +10,7 @@
 
 #let val(x) = text(fill: blue, str(x))
 #let ptr(x) = underline(str(x))
-#let nullptr = ptr("●");
+#let nil = ptr("●");
 
 #let object(content, color: white) = table.cell(colspan: content.len(), inset: (x: 1.1pt))[ #table(
   columns: content.len(),
@@ -39,15 +39,15 @@
       columns: ids.len(),
       align: center,
       ..ids.map(id => table.cell(stroke: none)[#id]),
-      object((val(5), nullptr, ptr(7))),
-      object((val(1), ptr(19), nullptr)),
-      object((val(7), nullptr, ptr(13))),
-      object((val(8), ptr(16), nullptr)),
+      object((val(5), nil, ptr(7))),
+      object((val(1), ptr(19), nil)),
+      object((val(7), nil, ptr(13))),
+      object((val(8), ptr(16), nil)),
       object((val(9), val(10), ptr(16))),
       object((val(2), ptr(7), ptr(25))),
       object((val(4), ptr(4), ptr(22))),
       object((val(6), ptr(19), ptr(4))),
-      object((val(3), nullptr, ptr(1)))
+      object((val(3), nil, ptr(1)))
     ),
   ),
   caption: [Пример состояния памяти какой-то программы.],
@@ -71,8 +71,8 @@
 
   Обозначения:
   - ...обозначения из задания
-  - #box(object((val(8), ptr(16), nullptr), color: yellow)) -- помеченный блок.
-  - #box(object((val(8), replaced(nullptr), nullptr))) -- второе поле временно перезаписано.
+  - #box(object((val(8), ptr(16), nil), color: yellow)) -- помеченный блок.
+  - #box(object((val(8), replaced(nil), nil))) -- второе поле временно перезаписано.
 
   Состояния памяти:
 
@@ -82,15 +82,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((val(7), nullptr, ptr(13))),
-    object((val(8), ptr(16), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    object((val(7), nil, ptr(13))),
+    object((val(8), ptr(16), nil)),
     object((val(9), val(10), ptr(16))),
     object((val(2), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1)))
+    object((val(3), nil, ptr(1)))
   )
 
   #align(center, sym.arrow.b + " нашли непомеченный " + ptr(10) + " в корнях")
@@ -101,15 +101,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((val(7), nullptr, ptr(13))),
-    marked_object((val(8), ptr(16), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    object((val(7), nil, ptr(13))),
+    marked_object((val(8), ptr(16), nil)),
     object((val(9), val(10), ptr(16))),
     object((val(2), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1)))
+    object((val(3), nil, ptr(1)))
   )
 
   #align(center, sym.arrow.b + " первое поле не указатель, второе " + ptr(16) + " не помечено")
@@ -120,15 +120,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((val(7), nullptr, ptr(13))),
-    marked_object((val(8), replaced(nullptr), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    object((val(7), nil, ptr(13))),
+    marked_object((val(8), replaced(nil), nil)),
     object((val(9), val(10), ptr(16))),
     marked_object((val(2), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1)))
+    object((val(3), nil, ptr(1)))
   )
 
   #align(center, sym.arrow.b)
@@ -139,15 +139,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    marked_object((val(7), nullptr, ptr(13))),
-    marked_object((val(8), replaced(nullptr), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    marked_object((val(7), nil, ptr(13))),
+    marked_object((val(8), replaced(nil), nil)),
     object((val(9), val(10), ptr(16))),
     marked_object((val(2), replaced(ptr(10)), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1)))
+    object((val(3), nil, ptr(1)))
   )
 
   #align(center, sym.arrow.b)
@@ -158,15 +158,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    marked_object((val(7), nullptr, replaced(ptr(16)))),
-    marked_object((val(8), replaced(nullptr), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    marked_object((val(7), nil, replaced(ptr(16)))),
+    marked_object((val(8), replaced(nil), nil)),
     marked_object((val(9), val(10), ptr(16))),
     marked_object((val(2), replaced(ptr(10)), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1)))
+    object((val(3), nil, ptr(1)))
   )
 
   #align(
@@ -180,15 +180,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    marked_object((val(7), nullptr, ptr(13))),
-    marked_object((val(8), replaced(nullptr), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    marked_object((val(7), nil, ptr(13))),
+    marked_object((val(8), replaced(nil), nil)),
     marked_object((val(9), val(10), ptr(16))),
     marked_object((val(2), replaced(ptr(10)), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1)))
+    object((val(3), nil, ptr(1)))
   )
 
   #align(center, sym.arrow.b + " переходим к следующему полю-указателю у " + ptr(16))
@@ -199,15 +199,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    marked_object((val(7), nullptr, ptr(13))),
-    marked_object((val(8), replaced(nullptr), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    marked_object((val(7), nil, ptr(13))),
+    marked_object((val(8), replaced(nil), nil)),
     marked_object((val(9), val(10), ptr(16))),
     marked_object((val(2), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1)))
+    object((val(3), nil, ptr(1)))
   )
 
   #align(center, sym.arrow.b)
@@ -218,15 +218,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    marked_object((val(7), nullptr, ptr(13))),
-    marked_object((val(8), replaced(nullptr), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    marked_object((val(7), nil, ptr(13))),
+    marked_object((val(8), replaced(nil), nil)),
     marked_object((val(9), val(10), ptr(16))),
     marked_object((val(2), ptr(7), replaced(ptr(10)))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    marked_object((val(3), nullptr, ptr(1)))
+    marked_object((val(3), nil, ptr(1)))
   )
 
   #align(center, sym.arrow.b)
@@ -237,15 +237,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    marked_object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    marked_object((val(7), nullptr, ptr(13))),
-    marked_object((val(8), replaced(nullptr), nullptr)),
+    marked_object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    marked_object((val(7), nil, ptr(13))),
+    marked_object((val(8), replaced(nil), nil)),
     marked_object((val(9), val(10), ptr(16))),
     marked_object((val(2), ptr(7), replaced(ptr(10)))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    marked_object((val(3), nullptr, replaced(ptr(16))))
+    marked_object((val(3), nil, replaced(ptr(16))))
   )
 
   #align(center, sym.arrow.b + " у " + ptr(1) + " нет непомеченных полей-указателей")
@@ -256,15 +256,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    marked_object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    marked_object((val(7), nullptr, ptr(13))),
-    marked_object((val(8), replaced(nullptr), nullptr)),
+    marked_object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    marked_object((val(7), nil, ptr(13))),
+    marked_object((val(8), replaced(nil), nil)),
     marked_object((val(9), val(10), ptr(16))),
     marked_object((val(2), ptr(7), replaced(ptr(10)))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    marked_object((val(3), nullptr, ptr(1)))
+    marked_object((val(3), nil, ptr(1)))
   )
 
   #align(center, sym.arrow.b)
@@ -275,15 +275,15 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    marked_object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    marked_object((val(7), nullptr, ptr(13))),
-    marked_object((val(8), replaced(nullptr), nullptr)),
+    marked_object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    marked_object((val(7), nil, ptr(13))),
+    marked_object((val(8), replaced(nil), nil)),
     marked_object((val(9), val(10), ptr(16))),
     marked_object((val(2), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    marked_object((val(3), nullptr, ptr(1)))
+    marked_object((val(3), nil, ptr(1)))
   )
 
   #align(center, sym.arrow.b)
@@ -294,18 +294,18 @@
     columns: ids.len(),
     align: center,
     ..ids.map(id => table.cell(stroke: none)[#id]),
-    marked_object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    marked_object((val(7), nullptr, ptr(13))),
-    marked_object((val(8), ptr(16), nullptr)),
+    marked_object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    marked_object((val(7), nil, ptr(13))),
+    marked_object((val(8), ptr(16), nil)),
     marked_object((val(9), val(10), ptr(16))),
     marked_object((val(2), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    marked_object((val(3), nullptr, ptr(1)))
+    marked_object((val(3), nil, ptr(1)))
   )
 
-  Ответы:
+  *Ответы*:
   1. Адреса помеченных блоков: 1, 7, 10, 13, 16, 25
   2. Состояние памяти в момент пометки блока со значением #val(7) в первом поле:
     1. #table(
@@ -314,15 +314,15 @@
         columns: ids.len(),
         align: center,
         ..ids.map(id => table.cell(stroke: none)[#id]),
-        object((val(5), nullptr, ptr(7))),
-        object((val(1), ptr(19), nullptr)),
-        marked_object((val(7), nullptr, ptr(13))),
-        marked_object((val(8), replaced(nullptr), nullptr)),
+        object((val(5), nil, ptr(7))),
+        object((val(1), ptr(19), nil)),
+        marked_object((val(7), nil, ptr(13))),
+        marked_object((val(8), replaced(nil), nil)),
         object((val(9), val(10), ptr(16))),
         marked_object((val(2), replaced(ptr(10)), ptr(25))),
         object((val(4), ptr(4), ptr(22))),
         object((val(6), ptr(19), ptr(4))),
-        object((val(3), nullptr, ptr(1)))
+        object((val(3), nil, ptr(1)))
       )
     2. Массив done: [0,0,0,1,0,1,0,0,0]
     3. Переменные: t = #ptr(16), x = #ptr(7), y = #ptr(7)
@@ -344,10 +344,9 @@
 #solution()[
   #let changed(it) = table.cell(fill: blue)[#it]
 
-
-  #let from_space = ()
-  #for i in range(30) { from_space.push(i + 1) }
-  #let to_space = from_space.map(x => x + 30);
+  #let total_memory = 60
+  #let from_space = range(1, calc.floor(total_memory / 2) + 1)
+  #let to_space = range(calc.floor(total_memory / 2) + 1, total_memory + 1)
 
   #let object(content, color: white) = table.cell(colspan: content.len(), inset: (x: 1.1pt))[ #table(
     columns: content.len(),
@@ -362,6 +361,7 @@
     raw(text),
   )
 
+  Изменение памяти во время исполнения программы:
   #table(
     stroke: none,
     row-gutter: (-0.5em, auto),
@@ -369,15 +369,15 @@
     //
     columns: from_space.len(),
     ..from_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((val(7), nullptr, ptr(13))),
-    object((val(8), ptr(16), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    object((val(7), nil, ptr(13))),
+    object((val(8), ptr(16), nil)),
     object((val(9), val(10), ptr(16))),
     object((val(2), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1))),
+    object((val(3), nil, ptr(1))),
     object(("  ", "  ", "  ")),
     //
     ..range(9).map(_ => table.cell[ ]),
@@ -415,15 +415,15 @@
     //
     columns: from_space.len(),
     ..from_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((val(7), nullptr, ptr(13))),
-    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    object((val(7), nil, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nil)),
     object((val(9), val(10), ptr(16))),
     object((val(2), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1))),
+    object((val(3), nil, ptr(1))),
     object(("  ", "  ", "  ")),
     //
     ..range(15).map(_ => table.cell[ ]),
@@ -437,7 +437,7 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), ptr(16), nullptr)),
+    object((val(8), ptr(16), nil)),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -463,15 +463,15 @@
     //
     columns: from_space.len(),
     ..from_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((val(7), nullptr, ptr(13))),
-    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    object((val(7), nil, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nil)),
     object((val(9), val(10), ptr(16))),
     object((changed(ptr(34)), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((val(3), nullptr, ptr(1))),
+    object((val(3), nil, ptr(1))),
     object(("  ", "  ", "  ")),
     //
     ..range(24).map(_ => table.cell[ ]),
@@ -485,7 +485,7 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), ptr(16), nullptr)),
+    object((val(8), ptr(16), nil)),
     object((val(2), ptr(7), ptr(25))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -511,15 +511,15 @@
     //
     columns: from_space.len(),
     ..from_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(5), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((val(7), nullptr, ptr(13))),
-    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((val(5), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    object((val(7), nil, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nil)),
     object((val(9), val(10), ptr(16))),
     object((changed(ptr(34)), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((changed(ptr(37)), nullptr, ptr(1))),
+    object((changed(ptr(37)), nil, ptr(1))),
     object(("  ", "  ", "  ")),
     //
     ..range(0).map(_ => table.cell[ ]),
@@ -533,9 +533,9 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), ptr(16), nullptr)),
+    object((val(8), ptr(16), nil)),
     object((val(2), ptr(7), ptr(25))),
-    object((val(3), nullptr, ptr(1))),
+    object((val(3), nil, ptr(1))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -559,15 +559,15 @@
     //
     columns: from_space.len(),
     ..from_space.map(id => table.cell(stroke: none)[#id]),
-    object((changed(ptr(40)), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((val(7), nullptr, ptr(13))),
-    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((changed(ptr(40)), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    object((val(7), nil, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nil)),
     object((val(9), val(10), ptr(16))),
     object((changed(ptr(34)), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((changed(ptr(37)), nullptr, ptr(1))),
+    object((changed(ptr(37)), nil, ptr(1))),
     object(("  ", "  ", "  ")),
     //
     ..range(6).map(_ => table.cell[ ]),
@@ -581,10 +581,10 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), ptr(16), nullptr)),
+    object((val(8), ptr(16), nil)),
     object((val(2), ptr(7), ptr(25))),
-    object((val(3), nullptr, ptr(1))),
-    object((val(5), nullptr, ptr(7))),
+    object((val(3), nil, ptr(1))),
+    object((val(5), nil, ptr(7))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -607,15 +607,15 @@
     //
     columns: from_space.len(),
     ..from_space.map(id => table.cell(stroke: none)[#id]),
-    object((changed(ptr(40)), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((changed(ptr(43)), nullptr, ptr(13))),
-    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((changed(ptr(40)), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    object((changed(ptr(43)), nil, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nil)),
     object((val(9), val(10), ptr(16))),
     object((changed(ptr(34)), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((changed(ptr(37)), nullptr, ptr(1))),
+    object((changed(ptr(37)), nil, ptr(1))),
     object(("  ", "  ", "  ")),
     //
     ..range(12).map(_ => table.cell[ ]),
@@ -629,11 +629,11 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), ptr(16), nullptr)),
+    object((val(8), ptr(16), nil)),
     object((val(2), ptr(7), ptr(25))),
-    object((val(3), nullptr, ptr(1))),
-    object((val(5), nullptr, ptr(7))),
-    object((val(7), nullptr, ptr(13))),
+    object((val(3), nil, ptr(1))),
+    object((val(5), nil, ptr(7))),
+    object((val(7), nil, ptr(13))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -655,20 +655,20 @@
     //
     columns: from_space.len(),
     ..from_space.map(id => table.cell(stroke: none)[#id]),
-    object((changed(ptr(40)), nullptr, ptr(7))),
-    object((val(1), ptr(19), nullptr)),
-    object((changed(ptr(43)), nullptr, ptr(13))),
-    object((changed(ptr(31)), ptr(16), nullptr)),
+    object((changed(ptr(40)), nil, ptr(7))),
+    object((val(1), ptr(19), nil)),
+    object((changed(ptr(43)), nil, ptr(13))),
+    object((changed(ptr(31)), ptr(16), nil)),
     object((changed(ptr(46)), val(10), ptr(16))),
     object((changed(ptr(34)), ptr(7), ptr(25))),
     object((val(4), ptr(4), ptr(22))),
     object((val(6), ptr(19), ptr(4))),
-    object((changed(ptr(37)), nullptr, ptr(1))),
+    object((changed(ptr(37)), nil, ptr(1))),
     object(("  ", "  ", "  ")),
     //
     raw("p"),
     sym.arrow.r,
-    nullptr
+    nil
   )
 
   #table(
@@ -678,11 +678,11 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), ptr(16), nullptr)),
+    object((val(8), ptr(16), nil)),
     object((val(2), ptr(7), ptr(25))),
-    object((val(3), nullptr, ptr(1))),
-    object((val(5), nullptr, ptr(7))),
-    object((val(7), nullptr, ptr(13))),
+    object((val(3), nil, ptr(1))),
+    object((val(5), nil, ptr(7))),
+    object((val(7), nil, ptr(13))),
     object((val(9), val(10), ptr(16))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -704,11 +704,11 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(8), changed(ptr(34)), nil)),
     object((val(2), ptr(7), ptr(25))),
-    object((val(3), nullptr, ptr(1))),
-    object((val(5), nullptr, ptr(7))),
-    object((val(7), nullptr, ptr(13))),
+    object((val(3), nil, ptr(1))),
+    object((val(5), nil, ptr(7))),
+    object((val(7), nil, ptr(13))),
     object((val(9), val(10), ptr(16))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -730,11 +730,11 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(8), changed(ptr(34)), nil)),
     object((val(2), changed(ptr(43)), changed(ptr(37)))),
-    object((val(3), nullptr, ptr(1))),
-    object((val(5), nullptr, ptr(7))),
-    object((val(7), nullptr, ptr(13))),
+    object((val(3), nil, ptr(1))),
+    object((val(5), nil, ptr(7))),
+    object((val(7), nil, ptr(13))),
     object((val(9), val(10), ptr(16))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -756,11 +756,11 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(8), changed(ptr(34)), nil)),
     object((val(2), changed(ptr(43)), changed(ptr(37)))),
-    object((val(3), nullptr, changed(ptr(31)))),
-    object((val(5), nullptr, ptr(7))),
-    object((val(7), nullptr, ptr(13))),
+    object((val(3), nil, changed(ptr(31)))),
+    object((val(5), nil, ptr(7))),
+    object((val(7), nil, ptr(13))),
     object((val(9), val(10), ptr(16))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -782,11 +782,11 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(8), changed(ptr(34)), nil)),
     object((val(2), changed(ptr(43)), changed(ptr(37)))),
-    object((val(3), nullptr, changed(ptr(31)))),
-    object((val(5), nullptr, changed(ptr(43)))),
-    object((val(7), nullptr, ptr(13))),
+    object((val(3), nil, changed(ptr(31)))),
+    object((val(5), nil, changed(ptr(43)))),
+    object((val(7), nil, ptr(13))),
     object((val(9), val(10), ptr(16))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -808,11 +808,11 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(8), changed(ptr(34)), nil)),
     object((val(2), changed(ptr(43)), changed(ptr(37)))),
-    object((val(3), nullptr, changed(ptr(31)))),
-    object((val(5), nullptr, changed(ptr(43)))),
-    object((val(7), nullptr, changed(ptr(46)))),
+    object((val(3), nil, changed(ptr(31)))),
+    object((val(5), nil, changed(ptr(43)))),
+    object((val(7), nil, changed(ptr(46)))),
     object((val(9), val(10), ptr(16))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -834,11 +834,11 @@
     //
     columns: to_space.len(),
     ..to_space.map(id => table.cell(stroke: none)[#id]),
-    object((val(8), changed(ptr(34)), nullptr)),
+    object((val(8), changed(ptr(34)), nil)),
     object((val(2), changed(ptr(43)), changed(ptr(37)))),
-    object((val(3), nullptr, changed(ptr(31)))),
-    object((val(5), nullptr, changed(ptr(43)))),
-    object((val(7), nullptr, changed(ptr(46)))),
+    object((val(3), nil, changed(ptr(31)))),
+    object((val(5), nil, changed(ptr(43)))),
+    object((val(7), nil, changed(ptr(46)))),
     object((val(9), val(10), changed(ptr(34)))),
     object(("  ", "  ", "  ")),
     object(("  ", "  ", "  ")),
@@ -849,7 +849,7 @@
     arrow("scan next"),
   )
 
-  Ответы:
+  *Ответы*:
   1. #table(
       stroke: none,
       row-gutter: (-0.5em, auto),
@@ -857,11 +857,11 @@
       //
       columns: to_space.len(),
       ..to_space.map(id => table.cell(stroke: none)[#id]),
-      object((val(8), ptr(34), nullptr)),
+      object((val(8), ptr(34), nil)),
       object((val(2), ptr(43), ptr(37))),
-      object((val(3), nullptr, ptr(31))),
-      object((val(5), nullptr, ptr(43))),
-      object((val(7), nullptr, ptr(46))),
+      object((val(3), nil, ptr(31))),
+      object((val(5), nil, ptr(43))),
+      object((val(7), nil, ptr(46))),
       object((val(9), val(10), ptr(34))),
       object(("  ", "  ", "  ")),
       object(("  ", "  ", "  ")),
@@ -873,3 +873,679 @@
   4. $R dot ("<кол-во полей> + 1 (перезапись" p.f_1 ")") + "<кол-во указателей в достижимых объектах>" = 6 dot (3 + 1) + 7 = 31$
   5. $ (c_3 R) / (H/2 - R) = (10 dot (6 dot 3)) / (60 / 2 - 6 dot 3) = 15 $
 ]
+#pagebreak()
+
+#task("3")[
+  #import "@preview/codelst:2.0.2": sourcecode
+
+  Продемонстрируйте работу алгоритма Бейкера [1, §13.6] (инкрементальная сборка мусора), полагаясь на гибридный (semi-depth-first) алгоритм обхода и перенаправления указателей [1, Algorithm 13.11], на следующей программе. Учтите, что общая доступная память (_from-space_ + _to-space_) — 60 машинных слов.
+
+  #sourcecode[
+    ```py
+    def insert(t, x):
+      if t is None:
+        return [x, None, None]
+      elif x < t[0]:
+        r = [t[0], None, t[2]]
+        lt = insert(t[1], x)
+        r[1] = lt
+        return r
+      else:
+        r = [t[0], t[1], None]
+        rt = insert(t[2], x)
+        r[2] = rt
+        return r
+
+    n = 12
+    t = None
+    while n > 1:
+      t = insert(t, n)
+      if n % 2 == 0:
+        n = n / 2
+      else:
+        n = 3 * n + 1
+    print(t)
+    ```
+  ]
+
+  #enum(
+    numbering: "1.",
+    enum.item[В какой момент работы программы происходит инициализация сборки мусора? Происходит ли инициализация второй раз? Если да, то в какой момент?],
+    enum.item[Сколько мусора (кол-во машинных слов) находится на куче в момент вызова сборщика мусора (первый раз)?],
+    enum.item[Сколько мусора (кол-во машинных слов) находится на куче в момент завершения сборки мусора (первый раз)?],
+    enum.item[
+      Каково состояние кучи после вызова insert(t, 5) в основной программе?
+      #enum(
+        numbering: "(a)",
+        enum.item[Покажите состояние ячеек памяти в from-space и to-space.],
+        enum.item[Покажите значения корней основной программы.],
+        enum.item[Покажите значения (куда указывают) переменные scan, next, limit.],
+      )
+    ],
+  )
+
+
+]
+#solution()[
+  #let changed(it) = table.cell(fill: blue)[#it]
+
+  #let total_memory = 60
+
+  #let n = calc.floor(total_memory / 2)
+  #let from_space = range(1, n + 1)
+  #let to_space = range(n + 1, total_memory + 1)
+
+  #let from_space_ids = from_space.map(id => table.cell(stroke: none)[#id])
+  #let to_space_ids = to_space.map(id => table.cell(stroke: none)[#id])
+
+  #let object(content, color: white) = table.cell(colspan: content.len(), inset: (x: 1.1pt))[ #table(
+    columns: content.len(),
+    fill: color,
+    ..content.map(c => [#c])
+  )];
+
+  #let arrow(text) = table(
+    stroke: none,
+    row-gutter: (-0.5em),
+    columns: 1,
+    sym.arrow.t,
+    raw(text),
+  )
+
+  #let ptrs(ptrs) = {
+    let res = ()
+    let ptr = 0
+    for (i, name) in ptrs {
+      res += range(i - ptr - 1).map(_ => table.cell[ ])
+      res.push(arrow(name))
+      ptr = i
+    }
+    res += range(n - ptr).map(_ => table.cell[ ])
+    assert(res.len() == n, message: repr(ptr) + " " + repr(res.len()) + " not full row")
+    return res
+  }
+
+  #let limit(limit) = {
+    let res = ()
+    res += range(limit - 1).map(_ => table.cell[ ])
+    res.push(arrow("limit"))
+    res += range(n - limit).map(_ => table.cell[ ])
+    assert(res.len() == n, message: "not full row")
+    return res
+  }
+
+  Изменение памяти во время исполнения программы:
+
+  #block[
+
+    #set par(spacing: 0.5em)
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      ..(object(("  ", "  ", "  ")),) * 10,
+      ////
+      ..to_space_ids,
+      ..(object(("  ", "  ", "  ")),) * 10,
+      ..limit(30),
+    )
+
+
+    #line(length: 100%)
+    n = 12,
+    t = #nil
+
+    #align(center, sym.arrow.b + " insert(" + nil + ", " + val(12) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+    )
+
+    #line(length: 100%)
+    n = 6,
+    t = [12, #nil, #nil]
+
+    #align(center, sym.arrow.b + " insert(" + ptr(1) + ", " + val(6) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), nil, nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+    )
+
+    #align(center, sym.arrow.b + " insert(" + nil + ", " + val(6) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), changed(ptr(7)), nil)),
+      object((val(6), nil, nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+    )
+
+    #line(length: 100%)
+    n = 6,
+    t = [12, [6, #nil, #nil], #nil]
+
+    #align(center, sym.arrow.b + " insert(" + ptr(4) + ", " + val(3) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), nil, nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+    )
+
+    #align(center, sym.arrow.b + " insert(" + ptr(7) + ", " + val(3) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), nil, nil)),
+      object((val(6), nil, nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+    )
+
+    #align(center, sym.arrow.b + " insert(" + nil + ", " + val(3) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), changed(ptr(13)), nil)),
+      object((val(6), changed(ptr(16)), nil)),
+      object((val(3), nil, nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+    )
+
+    #line(length: 100%)
+    n = 10,
+    t = [12, [6, [3, #nil, #nil], #nil], #nil]
+
+    #align(center, sym.arrow.b + " insert(" + ptr(10) + ", " + val(10) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), ptr(13), nil)),
+      object((val(6), ptr(16), nil)),
+      object((val(3), nil, nil)),
+      object((val(12), nil, nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+    )
+
+    #align(center, sym.arrow.b + " insert(" + ptr(13) + ", " + val(10) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), ptr(13), nil)),
+      object((val(6), ptr(16), nil)),
+      object((val(3), nil, nil)),
+      object((val(12), nil, nil)),
+      object((val(6), ptr(16), nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+    )
+
+    #align(center, sym.arrow.b + " insert(" + nil + ", " + val(10) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), ptr(13), nil)),
+      object((val(6), ptr(16), nil)),
+      object((val(3), nil, nil)),
+      object((val(12), changed(ptr(22)), nil)),
+      object((val(6), ptr(16), changed(ptr(25)))),
+      object((val(10), nil, nil)),
+      object(("  ", "  ", "  ")),
+    )
+
+    #line(length: 100%)
+    n = 5,
+    t = [12, [6.0, [3.0, #nil, #nil], [10.0, #nil, #nil]], #nil]
+
+    #align(center, sym.arrow.b + " insert(" + ptr(19) + ", " + val(5) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.7em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), ptr(13), nil)),
+      object((val(6), ptr(16), nil)),
+      object((val(3), nil, nil)),
+      object((val(12), ptr(22), nil)),
+      object((val(6), ptr(16), ptr(25))),
+      object((val(10), nil, nil)),
+      object((val(12), nil, nil)),
+      ////
+
+      ..to_space_ids,
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      ..ptrs(((1, "scan next"), (30, "limit")))
+    )
+
+    Попытка аллоцировать память для нового объекта #text(fill: red)[[6, None, ptr(25)]] вызывает сборку мусора.
+
+    #align(center, sym.arrow.b + " insert(" + ptr(22) + ", " + val(5) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.5em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), ptr(13), nil)),
+      object((val(6), ptr(16), nil)),
+      object((val(3), nil, nil)),
+      object((changed(ptr(31)), ptr(22), nil)),
+      object((val(6), ptr(16), ptr(25))),
+      object((val(10), nil, nil)),
+      object((changed(ptr(34)), nil, nil)),
+
+      ////
+      ..to_space_ids,
+      object((val(12), ptr(22), nil)),
+      object((val(12), nil, nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      ..ptrs(((1, "scan"), (7, "next"), (30, "limit")))
+    )
+
+    #align(center, sym.arrow.b + " alloc([" + val(6) + ", " + nil + ", " + ptr(25) + "])" + " read barier 25 -> 37")
+    #table(
+      stroke: none,
+      row-gutter: (-0.5em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), ptr(13), nil)),
+      object((val(6), ptr(16), nil)),
+      object((val(3), nil, nil)),
+      object((ptr(31), ptr(22), nil)),
+      object((changed(ptr(40)), ptr(16), ptr(25))),
+      object((changed(ptr(37)), nil, nil)),
+      object((ptr(34), nil, nil)),
+
+      ////
+      ..to_space_ids,
+      object((val(12), changed(ptr(40)), nil)),
+      object((val(12), nil, nil)),
+      object((val(10), nil, nil)),
+      object((val(6), ptr(16), ptr(25))),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object((val(6), nil, ptr(37))),
+      ..ptrs(((4, "scan"), (13, "next"), (27, "limit")))
+    )
+
+    #align(center, sym.arrow.b + " insert(" + ptr(16) + ", " + val(5) + ")" + " read barier 16 -> 43")
+    #table(
+      stroke: none,
+      row-gutter: (-0.5em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), ptr(13), nil)),
+      object((val(6), ptr(16), nil)),
+      object((changed(ptr(43)), nil, nil)),
+      object((ptr(31), ptr(22), nil)),
+      object((ptr(40), ptr(16), ptr(25))),
+      object((ptr(37), nil, nil)),
+      object((ptr(34), nil, nil)),
+
+      ////
+      ..to_space_ids,
+      object((val(12), ptr(40), nil)),
+      object((val(12), nil, nil)),
+      object((val(10), nil, nil)),
+      object((val(6), ptr(16), ptr(25))),
+      object((val(3), nil, nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object((val(3), nil, nil)),
+      object((val(6), nil, ptr(37))),
+      ..ptrs(((7, "scan"), (16, "next"), (24, "limit")))
+    )
+
+    #align(center, sym.arrow.b + " insert(" + nil + ", " + val(5) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.5em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), ptr(13), nil)),
+      object((val(6), ptr(16), nil)),
+      object((changed(ptr(43)), nil, nil)),
+      object((ptr(31), ptr(22), nil)),
+      object((ptr(40), ptr(16), ptr(25))),
+      object((ptr(37), nil, nil)),
+      object((ptr(34), nil, nil)),
+
+      ////
+      ..to_space_ids,
+      object((val(12), ptr(40), nil)),
+      object((val(12), changed(ptr(58)), nil)),
+      object((val(10), nil, nil)),
+      object((val(6), ptr(16), ptr(25))),
+      object((val(3), nil, nil)),
+      object(("  ", "  ", "  ")),
+      object(("  ", "  ", "  ")),
+      object((val(5), nil, nil)),
+      object((val(3), changed(ptr(52)), nil)),
+      object((val(6), changed(ptr(55)), ptr(37))),
+      ..ptrs(((10, "scan"), (16, "next"), (21, "limit")))
+    )
+
+    #align(center, sym.arrow.b + " insert(" + ptr(34) + ", " + val(16) + ")")
+    #text(fill: red)[TODO]
+  ]
+
+  *Ответы*:
+  #enum(
+    numbering: "1.",
+    enum.item[
+      Инициализация сборки мусора (помечено красным) произойдёт на 5 итерации при попытке аллоцировать память для нового объекта [6, None, ptr(25)].
+
+      #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
+      #figure(
+        diagram(
+          node-stroke: luma(80%),
+          node((0,-1), [#"__main__"], name: <main>),
+          node((0, 0), [insert(#ptr(19), #val(5))], name: <i19-5>),
+          node((0, 1), [alloc([#val(12), #nil, #nil])], name: <a1>),
+          node((1, 1), [insert(#ptr(22), #val(5))], name: <i22-5>),
+          node((1, 2), [alloc([#val(6), #nil, #ptr(25)])], name: <a2>, stroke: red, fill: rgb(255, 200, 200, 80%)),
+
+          edge(<main>, <i19-5>, "-|>"),
+          edge(<i19-5>, <a1>, "-|>"),
+          edge(<i19-5>, <i22-5>, "-|>", label: `x < t[0] (10 < 12)`),
+          edge(<i22-5>, <a2>, "-|>"),
+        ),
+        caption: [Дерево вызовов на 5-й итерации],
+      )
+
+      Инициализация сборки мусора произойдёт второй раз, т.к. всего будет 28 аллокаций (легко проверить запустив программу и посчитав создания списков), что равно $28 * 3 = 84$ машинным словам, а за одну итерацию можно собрать не более половины памяти, т.е. $30$ машинных слов: $84 - 30 = 54 > 30$.
+
+    ],
+    enum.item[
+      Рассмотрим состояние памяти в момент начала сборки мусора:
+      #table(
+        columns: 2,
+        table.cell(colspan: 2, align: center)[Корни],
+        "t", "r",
+        ptr(19), ptr(28),
+      )
+
+      Достижимые объекты:
+
+      #block[
+        #set par(spacing: 0.5em)
+
+        #table(
+          stroke: none,
+          row-gutter: (-0.7em),
+          align: center,
+          ///////////////////////////////
+          columns: n,
+          ..from_space_ids,
+          object((val(12), nil, nil), color: white),
+          object((val(12), ptr(7), nil), color: white),
+          object((val(6), nil, nil), color: white),
+          object((val(12), ptr(13), nil), color: white),
+          object((val(6), ptr(16), nil), color: white),
+          object((val(3), nil, nil), color: white),
+          object((val(12), ptr(22), nil), color: yellow),
+          object((val(6), ptr(16), ptr(25)), color: white),
+          object((val(10), nil, nil), color: white),
+          object((val(12), nil, nil), color: yellow),
+          ////
+        )
+        #table(
+          stroke: none,
+          row-gutter: (-0.7em),
+          align: center,
+          ///////////////////////////////
+          columns: n,
+          ..from_space_ids,
+          object((val(12), nil, nil), color: white),
+          object((val(12), ptr(7), nil), color: white),
+          object((val(6), nil, nil), color: white),
+          object((val(12), ptr(13), nil), color: white),
+          object((val(6), ptr(16), nil), color: white),
+          object((val(3), nil, nil), color: white),
+          object((val(12), ptr(22), nil), color: yellow),
+          object((val(6), ptr(16), ptr(25)), color: yellow),
+          object((val(10), nil, nil), color: white),
+          object((val(12), nil, nil), color: yellow),
+          ////
+        )
+        #table(
+          stroke: none,
+          row-gutter: (-0.7em),
+          align: center,
+          ///////////////////////////////
+          columns: n,
+          ..from_space_ids,
+          object((val(12), nil, nil), color: white),
+          object((val(12), ptr(7), nil), color: white),
+          object((val(6), nil, nil), color: white),
+          object((val(12), ptr(13), nil), color: white),
+          object((val(6), ptr(16), nil), color: white),
+          object((val(3), nil, nil), color: yellow),
+          object((val(12), ptr(22), nil), color: yellow),
+          object((val(6), ptr(16), ptr(25)), color: yellow),
+          object((val(10), nil, nil), color: yellow),
+          object((val(12), nil, nil), color: yellow),
+          ////
+        )
+
+      ]
+
+      Итого на куче 5 недостижимых объектов: *15 мусорных машинных слов*.
+    ],
+    enum.item[
+      #text(fill: red)[TODO]
+    ],
+    enum.item[
+      #enum(
+        numbering: "(a)",
+        enum.item[
+          Память на момент *после* вызова `insert(t, 5)`:
+
+          #table(
+            stroke: none,
+            row-gutter: (-0.5em),
+            align: center,
+            ///////////////////////////////
+            columns: n,
+            ..from_space_ids,
+            object((val(12), nil, nil)),
+            object((val(12), ptr(7), nil)),
+            object((val(6), nil, nil)),
+            object((val(12), ptr(13), nil)),
+            object((val(6), ptr(16), nil)),
+            object((ptr(43), nil, nil)),
+            object((ptr(31), ptr(22), nil)),
+            object((ptr(40), ptr(16), ptr(25))),
+            object((ptr(37), nil, nil)),
+            object((ptr(34), nil, nil)),
+
+            ////
+            ..to_space_ids,
+            object((val(12), ptr(40), nil)),
+            object((val(12), ptr(58), nil)),
+            object((val(10), nil, nil)),
+            object((val(6), ptr(16), ptr(25))),
+            object((val(3), nil, nil)),
+            object(("  ", "  ", "  ")),
+            object(("  ", "  ", "  ")),
+            object((val(5), nil, nil)),
+            object((val(3), ptr(52), nil)),
+            object((val(6), ptr(55), ptr(37))),
+            ..ptrs(((10, "scan"), (16, "next"), (21, "limit")))
+          )
+        ],
+        enum.item[
+          #table(
+            columns: 2,
+            align: center,
+            table.cell(colspan: 2, align: center)[Корни],
+            "t", "n",
+            ptr(34), val(5),
+          )
+
+        ],
+        enum.item[
+          #context [
+            #let header = "Переменные сборщика мусора"
+            #let size = measure(header).width + 0.7em * 2
+            #table(
+              columns: (size / 3, size / 3, size / 3),
+              align: center,
+              table.cell(colspan: 3, align: center)[#header],
+              "scan", "next", "limit",
+              ptr(40), ptr(46), ptr(51),
+            )
+          ]
+
+        ],
+      )
+
+    ],
+  )
+
+
+]
+
+// [[12, None, None], [12, 2, None], [6, None, None], [12, 4, None], [6, 5, None], [3, None, None], [12, 7, None], [6, 5, 8], [10, None, None], None]
+// [[12, None, None], [12, 7, None], [6, None, None], [12, 13, None], [6, 16, None], [3, None, None], [12, 22, None], [6, 16, 25], [10, None, None], None]
