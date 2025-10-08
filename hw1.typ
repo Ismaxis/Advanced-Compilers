@@ -923,8 +923,6 @@
       )
     ],
   )
-
-
 ]
 #solution()[
   #let changed(it) = table.cell(fill: blue)[#it]
@@ -1245,50 +1243,16 @@
       object((val(6), ptr(16), nil)),
       object((val(3), nil, nil)),
       object((changed(ptr(31)), ptr(22), nil)),
-      object((val(6), ptr(16), ptr(25))),
-      object((val(10), nil, nil)),
-      object((changed(ptr(34)), nil, nil)),
-
-      ////
-      ..to_space_ids,
-      object((val(12), ptr(22), nil)),
-      object((val(12), nil, nil)),
-      object(("  ", "  ", "  ")),
-      object(("  ", "  ", "  ")),
-      object(("  ", "  ", "  ")),
-      object(("  ", "  ", "  ")),
-      object(("  ", "  ", "  ")),
-      object(("  ", "  ", "  ")),
-      object(("  ", "  ", "  ")),
-      object(("  ", "  ", "  ")),
-      ..ptrs(((1, "scan"), (7, "next"), (30, "limit")))
-    )
-
-    #align(center, sym.arrow.b + " alloc([" + val(6) + ", " + nil + ", " + ptr(25) + "])" + " read barier 25 -> 37")
-    #table(
-      stroke: none,
-      row-gutter: (-0.5em),
-      align: center,
-      ///////////////////////////////
-      columns: n,
-      ..from_space_ids,
-      object((val(12), nil, nil)),
-      object((val(12), ptr(7), nil)),
-      object((val(6), nil, nil)),
-      object((val(12), ptr(13), nil)),
-      object((val(6), ptr(16), nil)),
-      object((val(3), nil, nil)),
-      object((ptr(31), ptr(22), nil)),
-      object((changed(ptr(40)), ptr(16), ptr(25))),
+      object((changed(ptr(34)), ptr(16), ptr(25))),
       object((changed(ptr(37)), nil, nil)),
-      object((ptr(34), nil, nil)),
+      object((changed(ptr(40)), nil, nil)),
 
       ////
       ..to_space_ids,
-      object((val(12), changed(ptr(40)), nil)),
-      object((val(12), nil, nil)),
-      object((val(10), nil, nil)),
+      object((val(12), changed(ptr(34)), nil)),
       object((val(6), ptr(16), ptr(25))),
+      object((val(10), nil, nil)),
+      object((val(12), nil, nil)),
       object(("  ", "  ", "  ")),
       object(("  ", "  ", "  ")),
       object(("  ", "  ", "  ")),
@@ -1313,16 +1277,17 @@
       object((val(6), ptr(16), nil)),
       object((changed(ptr(43)), nil, nil)),
       object((ptr(31), ptr(22), nil)),
-      object((ptr(40), ptr(16), ptr(25))),
+      object((ptr(34), ptr(16), ptr(25))),
       object((ptr(37), nil, nil)),
-      object((ptr(34), nil, nil)),
+      object((ptr(40), nil, nil)),
+
 
       ////
       ..to_space_ids,
-      object((val(12), ptr(40), nil)),
-      object((val(12), nil, nil)),
+      object((val(12), ptr(34), nil)),
+      object((val(6), changed(ptr(43)), changed(ptr(37)))),
       object((val(10), nil, nil)),
-      object((val(6), ptr(16), ptr(25))),
+      object((val(12), nil, nil)),
       object((val(3), nil, nil)),
       object(("  ", "  ", "  ")),
       object(("  ", "  ", "  ")),
@@ -1347,16 +1312,16 @@
       object((val(6), ptr(16), nil)),
       object((changed(ptr(43)), nil, nil)),
       object((ptr(31), ptr(22), nil)),
-      object((ptr(40), ptr(16), ptr(25))),
+      object((ptr(34), ptr(16), ptr(25))),
       object((ptr(37), nil, nil)),
-      object((ptr(34), nil, nil)),
+      object((ptr(40), nil, nil)),
 
       ////
       ..to_space_ids,
-      object((val(12), ptr(40), nil)),
-      object((val(12), changed(ptr(58)), nil)),
+      object((val(12), ptr(34), nil)),
+      object((val(6), ptr(43), ptr(37))),
       object((val(10), nil, nil)),
-      object((val(6), ptr(16), ptr(25))),
+      object((val(12), changed(ptr(58)), nil)),
       object((val(3), nil, nil)),
       object(("  ", "  ", "  ")),
       object(("  ", "  ", "  ")),
@@ -1366,8 +1331,39 @@
       ..ptrs(((10, "scan"), (16, "next"), (21, "limit")))
     )
 
-    #align(center, sym.arrow.b + " insert(" + ptr(34) + ", " + val(16) + ")")
-    #text(fill: red)[TODO]
+    #align(center, sym.arrow.b + " Конец сборки мусора insert(" + ptr(49) + ", " + val(8) + ")")
+    #table(
+      stroke: none,
+      row-gutter: (-0.5em),
+      align: center,
+      ///////////////////////////////
+      columns: n,
+      ..from_space_ids,
+      object((val(12), nil, nil)),
+      object((val(12), ptr(7), nil)),
+      object((val(6), nil, nil)),
+      object((val(12), ptr(13), nil)),
+      object((val(6), ptr(16), nil)),
+      object((ptr(43), nil, nil)),
+      object((ptr(31), ptr(22), nil)),
+      object((ptr(34), ptr(16), ptr(25))),
+      object((ptr(37), nil, nil)),
+      object((ptr(40), nil, nil)),
+
+      ////
+      ..to_space_ids,
+      object((val(12), ptr(34), nil)),
+      object((val(6), ptr(43), ptr(37))),
+      object((val(10), nil, nil)),
+      object((val(12), ptr(58), nil)),
+      object((val(3), nil, nil)),
+      object((val(16), nil, nil)),
+      object((val(12), nil, ptr(46))),
+      object((val(5), nil, nil)),
+      object((val(3), ptr(52), nil)),
+      object((val(6), ptr(55), ptr(37))),
+      ..ptrs(((15, "scan next limit"),))
+    )
   ]
 
   *Ответы*:
@@ -1380,7 +1376,7 @@
       #figure(
         diagram(
           node-stroke: luma(80%),
-          node((0,-1), [#"__main__"], name: <main>),
+          node((0, -1), [#"__main__"], name: <main>),
           node((0, 0), [insert(#ptr(19), #val(5))], name: <i19-5>),
           node((0, 1), [alloc([#val(12), #nil, #nil])], name: <a1>),
           node((1, 1), [insert(#ptr(22), #val(5))], name: <i22-5>),
@@ -1474,7 +1470,94 @@
       Итого на куче 5 недостижимых объектов: *15 мусорных машинных слов*.
     ],
     enum.item[
-      #text(fill: red)[TODO]
+      Рассмотрим состояние памяти в момент начала сборки мусора:
+      #table(
+        columns: 2,
+        table.cell(colspan: 2, align: center)[Корни],
+        "t", "r",
+        ptr(40), ptr(49),
+      )
+
+      Достижимые объекты:
+
+      #table(
+        stroke: none,
+        row-gutter: (-0.5em),
+        align: center,
+        ///////////////////////////////
+        columns: n,
+        ////
+        ..to_space_ids,
+        object((val(12), ptr(34), nil)),
+        object((val(6), ptr(43), ptr(37))),
+        object((val(10), nil, nil)),
+        object((val(12), ptr(58), nil), color: yellow),
+        object((val(3), nil, nil)),
+        object((val(16), nil, nil)),
+        object((val(12), nil, ptr(46)), color: yellow),
+        object((val(5), nil, nil)),
+        object((val(3), ptr(52), nil)),
+        object((val(6), ptr(55), ptr(37))),
+      )
+      #table(
+        stroke: none,
+        row-gutter: (-0.5em),
+        align: center,
+        ///////////////////////////////
+        columns: n,
+        ////
+        ..to_space_ids,
+        object((val(12), ptr(34), nil)),
+        object((val(6), ptr(43), ptr(37))),
+        object((val(10), nil, nil)),
+        object((val(12), ptr(58), nil), color: yellow),
+        object((val(3), nil, nil)),
+        object((val(16), nil, nil), color: yellow),
+        object((val(12), nil, ptr(46)), color: yellow),
+        object((val(5), nil, nil)),
+        object((val(3), ptr(52), nil)),
+        object((val(6), ptr(55), ptr(37)), color: yellow),
+      )
+      #table(
+        stroke: none,
+        row-gutter: (-0.5em),
+        align: center,
+        ///////////////////////////////
+        columns: n,
+        ////
+        ..to_space_ids,
+        object((val(12), ptr(34), nil)),
+        object((val(6), ptr(43), ptr(37))),
+        object((val(10), nil, nil), color: yellow),
+        object((val(12), ptr(58), nil), color: yellow),
+        object((val(3), nil, nil)),
+        object((val(16), nil, nil), color: yellow),
+        object((val(12), nil, ptr(46)), color: yellow),
+        object((val(5), nil, nil)),
+        object((val(3), ptr(52), nil), color: yellow),
+        object((val(6), ptr(55), ptr(37)), color: yellow),
+      )
+      #table(
+        stroke: none,
+        row-gutter: (-0.5em),
+        align: center,
+        ///////////////////////////////
+        columns: n,
+        ////
+        ..to_space_ids,
+        object((val(12), ptr(34), nil)),
+        object((val(6), ptr(43), ptr(37))),
+        object((val(10), nil, nil), color: yellow),
+        object((val(12), ptr(58), nil), color: yellow),
+        object((val(3), nil, nil)),
+        object((val(16), nil, nil), color: yellow),
+        object((val(12), nil, ptr(46)), color: yellow),
+        object((val(5), nil, nil), color: yellow),
+        object((val(3), ptr(52), nil), color: yellow),
+        object((val(6), ptr(55), ptr(37)), color: yellow),
+      )
+
+      Итого на куче 3 недостижимых объектов: *9 мусорных машинных слов*.
     ],
     enum.item[
       #enum(
@@ -1496,16 +1579,16 @@
             object((val(6), ptr(16), nil)),
             object((ptr(43), nil, nil)),
             object((ptr(31), ptr(22), nil)),
-            object((ptr(40), ptr(16), ptr(25))),
+            object((ptr(34), ptr(16), ptr(25))),
             object((ptr(37), nil, nil)),
-            object((ptr(34), nil, nil)),
+            object((ptr(40), nil, nil)),
 
             ////
             ..to_space_ids,
-            object((val(12), ptr(40), nil)),
-            object((val(12), ptr(58), nil)),
+            object((val(12), ptr(34), nil)),
+            object((val(6), ptr(43), ptr(37))),
             object((val(10), nil, nil)),
-            object((val(6), ptr(16), ptr(25))),
+            object((val(12), ptr(58), nil)),
             object((val(3), nil, nil)),
             object(("  ", "  ", "  ")),
             object(("  ", "  ", "  ")),
@@ -1521,7 +1604,7 @@
             align: center,
             table.cell(colspan: 2, align: center)[Корни],
             "t", "n",
-            ptr(34), val(5),
+            ptr(40), val(5),
           )
 
         ],
@@ -1537,15 +1620,63 @@
               ptr(40), ptr(46), ptr(51),
             )
           ]
-
         ],
       )
-
     ],
   )
+]
+#pagebreak()
 
+
+#task("4")[
+  #import "@preview/codelst:2.0.2": sourcecode
+
+
+  #sourcecode[
+    ```py
+    def f(x):
+      n = x[0]
+      while x[1] is not None:
+        x = x[1]
+      while n > 1:
+        x[1] = [n - 1, None]
+        x = x[1]
+        n = n - 1
+
+    s = 0
+    def g(x):
+      global s
+      if x[1] is not None:
+        n = x[0]
+        x = x[1]
+        s = s + n
+        return x
+      else:
+        return None
+
+    x = [7, None]
+    while x is not None:
+      f(x)
+      x = g(x)
+      print(x)
+    ```
+  ]
+
+  #enum(
+    numbering: "1.",
+    enum.item[
+      Каково общее количество памяти (кол-во машинных слов), которое выделяет эта программа на куче на протяжении своей работы?
+    ],
+    enum.item[
+      Какое максимальное количество _живой_ памяти (достижимых машинных слов) находится на куче в течение работы этой программы?
+    ],
+    enum.item[При использовании копирующего сборщика мусора без поколений [1, §13.3], достаточно ли будет 30 машинных слов на _from-space_ (и столько же на _to-space_)? Достаточно ли 20 машинных слов? 25 машинных слов?
+    ],
+    enum.item[
+      При использовании сборки по поколениям [1, §13.4] (на основе копирующего сборщика мусора) с двумя поколениями ($G_0$ и $G_1$) общим размером в 30 машинных слов, как бы вы разделили память по поколениям (сколько машинных слов будет относиться к $G_0$, а сколько -- к $G_1$)? Обоснуйте свой ответ.
+    ],
+  )
+]
+#solution()[
 
 ]
-
-// [[12, None, None], [12, 2, None], [6, None, None], [12, 4, None], [6, 5, None], [3, None, None], [12, 7, None], [6, 5, 8], [10, None, None], None]
-// [[12, None, None], [12, 7, None], [6, None, None], [12, 13, None], [6, 16, None], [3, None, None], [12, 22, None], [6, 16, 25], [10, None, None], None]
