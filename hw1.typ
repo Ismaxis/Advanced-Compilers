@@ -5,7 +5,7 @@
 #let task = thmbox("theorem", "Задание", fill: rgb("#eeffee")).with(numbering: none)
 #let solution = thmproof("proof", "Решение")
 
-#align(center, text[= Исаев Максим])
+#align(center, text[= Максим Исаев])
 #align(center, text[== Темы 1–4. Теоретическое задание])
 
 #let val(x) = text(fill: blue, str(x))
