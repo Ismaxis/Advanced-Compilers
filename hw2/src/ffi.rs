@@ -9,22 +9,22 @@ pub extern "C" fn gc_alloc(size_in_bytes: usize) -> *mut c_void {
 
 #[no_mangle]
 pub extern "C" fn gc_read_barrier(object: *mut c_void, field_index: c_int) {
-    crate::read_barrier(object as *mut gc::GcObject, field_index as usize);
+    crate::read_barrier(object as *mut gc::StellaObject, field_index as usize);
 }
 
 #[no_mangle]
 pub extern "C" fn gc_write_barrier(object: *mut c_void, field_index: c_int, contents: *mut c_void) {
-    crate::write_barrier(object as *mut gc::GcObject, field_index as usize, contents);
+    crate::write_barrier(object as *mut gc::StellaObject, field_index as usize, contents);
 }
 
 #[no_mangle]
 pub extern "C" fn gc_push_root(object: *mut *mut c_void) {
-    crate::push_root(object as *mut *mut gc::GcObject);
+    crate::push_root(object as *mut *mut gc::StellaObject);
 }
 
 #[no_mangle]
 pub extern "C" fn gc_pop_root(object: *mut *mut c_void) {
-    crate::pop_root(object as *mut *mut gc::GcObject);
+    crate::pop_root(object as *mut *mut gc::StellaObject);
 }
 
 #[no_mangle]

@@ -30,13 +30,13 @@ fn get_gc() -> &'static mut gc::GarbageCollector {
 }
 
 #[no_mangle]
-pub(crate) fn alloc(size_in_bytes: usize) -> *mut gc::GcObject {
+pub(crate) fn alloc(size_in_bytes: usize) -> *mut gc::StellaObject {
     log::debug!("alloc: {}", size_in_bytes);
     return get_gc().alloc(size_in_bytes);
 }
 
 #[no_mangle]
-pub(crate) fn read_barrier(object: *mut gc::GcObject, field_index: usize) {
+pub(crate) fn read_barrier(object: *mut gc::StellaObject, field_index: usize) {
     log::debug!(
         "read_barrier: object_addr={:p}, field_index={}",
         object,
@@ -46,7 +46,7 @@ pub(crate) fn read_barrier(object: *mut gc::GcObject, field_index: usize) {
 }
 
 #[no_mangle]
-pub(crate) fn write_barrier(object: *mut gc::GcObject, field_index: usize, contents: *mut std::ffi::c_void) {
+pub(crate) fn write_barrier(object: *mut gc::StellaObject, field_index: usize, contents: *mut std::ffi::c_void) {
     log::debug!(
         "write_barrier: object={:p}, field_index={}, contents={:p}",
         object,
@@ -57,13 +57,13 @@ pub(crate) fn write_barrier(object: *mut gc::GcObject, field_index: usize, conte
 }
 
 #[no_mangle]
-pub(crate) fn push_root(object: *mut *mut gc::GcObject) {
+pub(crate) fn push_root(object: *mut *mut gc::StellaObject) {
     log::debug!("push_root: object={:p}", object);
     get_gc().push_root(object);
 }
 
 #[no_mangle]
-pub(crate) fn pop_root(object: *mut *mut gc::GcObject) {
+pub(crate) fn pop_root(object: *mut *mut gc::StellaObject) {
     log::debug!("pop_root: object={:p}", object);
     get_gc().pop_root(object);
 }
