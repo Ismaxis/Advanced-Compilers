@@ -1,54 +1,60 @@
 use std::ffi::{c_int, c_void};
 
+use crate::gc::{self, GcObject};
+
 #[no_mangle]
 pub extern "C" fn gc_alloc(size_in_bytes: usize) -> *mut c_void {
-    log::debug!("gc_alloc: {}", size_in_bytes);
-
-    let object = crate::alloc(size_in_bytes);
-    return object as *mut c_void;
+    log::trace!("gc_alloc: {}", size_in_bytes);
+    return crate::alloc(size_in_bytes) as *mut c_void;
 }
 
 #[no_mangle]
 pub extern "C" fn gc_read_barrier(object: *mut c_void, field_index: c_int) {
-    log::debug!("gc_read_barrier: object={:?}, field_index={}", object, field_index);
-    // todo!();
+    log::trace!(
+        "gc_read_barrier: object={:?}, field_index={}",
+        object,
+        field_index
+    );
+    crate::read_barrier(object as *mut gc::GcObject, field_index as usize);
 }
 
 #[no_mangle]
 pub extern "C" fn gc_write_barrier(object: *mut c_void, field_index: c_int, contents: *mut c_void) {
-    log::debug!(
+    log::trace!(
         "gc_write_barrier: object={:?}, field_index={}, contents={:?}",
-        object, field_index, contents
+        object,
+        field_index,
+        contents
     );
-    // todo!();
+    crate::write_barrier(object as *mut gc::GcObject, field_index as usize, contents);
 }
 
 #[no_mangle]
 pub extern "C" fn gc_push_root(object: *mut *mut c_void) {
-    log::debug!("gc_push_root: object={:?}", object);
-    // todo!();
+    log::trace!("gc_push_root: object={:?}", object);
+    crate::push_root(object as *mut *mut GcObject);
 }
 
 #[no_mangle]
 pub extern "C" fn gc_pop_root(object: *mut *mut c_void) {
-    log::debug!("gc_pop_root: object={:?}", object);
-    // todo!();
+    log::trace!("gc_pop_root: object={:?}", object);
+    crate::pop_root(object as *mut *mut GcObject);
 }
 
 #[no_mangle]
 pub extern "C" fn print_gc_alloc_stats() {
-    log::debug!("print_gc_alloc_stats");
-    // todo!();
+    log::trace!("print_gc_alloc_stats");
+    crate::print_alloc_stats();
 }
 
 #[no_mangle]
 pub extern "C" fn print_gc_state() {
-    log::debug!("print_gc_state");
-    // todo!();
+    log::trace!("print_gc_state");
+    crate::print_state();
 }
 
 #[no_mangle]
 pub extern "C" fn print_gc_roots() {
-    log::debug!("print_gc_roots");
-    // todo!();
+    log::trace!("print_gc_roots");
+    crate::print_roots();
 }

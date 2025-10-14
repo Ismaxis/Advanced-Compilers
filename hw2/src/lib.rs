@@ -36,52 +36,52 @@ pub(crate) fn alloc(size_in_bytes: usize) -> *mut gc::GcObject {
 }
 
 #[no_mangle]
-pub(crate) fn read_barrier(object: &mut gc::GcObject, field_index: i32) {
+pub(crate) fn read_barrier(object: *mut gc::GcObject, field_index: usize) {
     log::debug!(
         "read_barrier: object_addr={:p}, field_index={}",
         object,
         field_index
     );
-    // todo!();
+    get_gc().read_barrier(object, field_index);
 }
 
 #[no_mangle]
-pub(crate) fn write_barrier(object: &mut gc::GcObject, field_index: i32, contents: &mut gc::GcObject) {
+pub(crate) fn write_barrier(object: *mut gc::GcObject, field_index: usize, contents: *mut std::ffi::c_void) {
     log::debug!(
         "write_barrier: object={:p}, field_index={}, contents={:p}",
         object,
         field_index,
         contents
     );
-    // todo!();
+    get_gc().write_barrier(object, field_index, contents);
 }
 
 #[no_mangle]
-pub(crate) fn push_root(object: &mut &mut gc::GcObject) {
+pub(crate) fn push_root(object: *mut *mut gc::GcObject) {
     log::debug!("push_root: object={:p}", object);
-    // todo!();
+    get_gc().push_root(object);
 }
 
 #[no_mangle]
-pub(crate) fn pop_root(object: &mut &mut gc::GcObject) {
+pub(crate) fn pop_root(object: *mut *mut gc::GcObject) {
     log::debug!("pop_root: object={:p}", object);
-    // todo!();
+    get_gc().pop_root(object);
 }
 
 #[no_mangle]
 pub(crate) fn print_alloc_stats() {
     log::debug!("print_alloc_stats");
-    // todo!();
+    get_gc().print_stats();
 }
 
 #[no_mangle]
 pub(crate) fn print_state() {
     log::debug!("print_state");
-    // todo!();
+    todo!("print_state");
 }
 
 #[no_mangle]
 pub(crate) fn print_roots() {
     log::debug!("print_roots");
-    // todo!();
+    todo!("print_roots");
 }
