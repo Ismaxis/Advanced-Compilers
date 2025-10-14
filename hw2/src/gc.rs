@@ -1,26 +1,55 @@
-use std::ptr::null_mut;
+use std::alloc::{GlobalAlloc, Layout};
 
-pub struct StellaObject {
-    pub header: usize,
-    pub fields: Vec<*mut StellaObject>,
-}
+use crate::{control_block::ControlBlock, types::*};
+
 
 pub struct GarbageCollector {
     roots: Vec<*mut *mut StellaObject>,
+    pub(crate) heap: *mut u8,
+    pub(crate) free: *mut u8,
 }
 
 impl GarbageCollector {
     pub fn new() -> Self {
-        GarbageCollector { roots: Vec::new() }
+        let ptr = unsafe { std::alloc::System.alloc(Self::heap_layout()) };
+        log::info!("heap start: {:p}", ptr);
+        GarbageCollector {
+            roots: Vec::new(),
+            heap: ptr,
+            free: ptr,
+        }
+    }
+
+    pub fn finalize(&mut self) {
+        unsafe { std::alloc::System.dealloc(self.heap, Self::heap_layout()) };
     }
 
     pub fn alloc(&mut self, size_in_bytes: usize) -> *mut StellaObject {
-        let obj = StellaObject {
-            header: 0,
-            fields: vec![null_mut(); size_in_bytes / std::mem::size_of::<*mut StellaObject>()],
+        let control_block_header = ControlBlock::<StellaObject>::header_layout();
+        let result =
+            unsafe { self.free.offset(control_block_header.size() as isize) } as *mut StellaObject;
+        {
+            let block = self.free as *mut ControlBlock<*mut StellaObject>;
+            unsafe {
+                (*block).some_header = 0xBAAD_F00D_DEAD_BEEFu64;
+            }
+        
+        }
+        self.free = unsafe {
+            self.free
+                .offset((control_block_header.size() + size_in_bytes) as isize)
         };
-        let obj_ptr = Box::into_raw(Box::new(obj));
-        obj_ptr
+
+        if self.free.addr() > self.heap.addr() + Self::MAX_ALLOC_SIZE {
+            panic!("out of memory");
+        }
+
+        result
+    }
+
+    const MAX_ALLOC_SIZE: usize = 512;
+    fn heap_layout() -> Layout {
+        Layout::array::<usize>(Self::MAX_ALLOC_SIZE).unwrap()
     }
 
     pub fn collect(&mut self) {
@@ -44,9 +73,9 @@ impl GarbageCollector {
         }
     }
 
-    pub fn read_barrier(&self, _object: *mut StellaObject, _field_index: usize) {
-        // Implement read barrier logic here
-    }
+    // pub fn read_barrier(&self, _object: *mut StellaObject, _field_index: usize) {
+    //     // Not needed
+    // }
 
     pub fn write_barrier(
         &self,
@@ -54,7 +83,10 @@ impl GarbageCollector {
         _field_index: usize,
         _contents: *mut std::ffi::c_void,
     ) {
-        // Implement write barrier logic here
+        // TODO: Implement write barrier logic here
+        // They are needed to track references from older generations to younger ones.
+        // Without write barriers, the collector may miss live objects in the young generation that
+        // are only reachable from the old generation, leading to incorrect collection (premature deallocation).
     }
 
     pub fn print_stats(&self) {

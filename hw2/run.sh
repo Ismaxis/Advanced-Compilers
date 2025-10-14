@@ -7,7 +7,7 @@ FULL_LOC=$TEST_NAME
 
 docker run -i fizruk/stella compile < tests/$TEST_NAME.st > $TEST_NAME.c
 
-LANG="C"
+LANG="rust"
 BUILD=debug
 while getopts "l:" opt; do
     case $opt in
@@ -32,14 +32,16 @@ elif [[ $LANG == "rust" ]]; then
     else 
         cargo build --$BUILD 2> build/cargo.log 1> build/cargo.log
     fi
-    gcc -std=c11 $FULL_LOC.c stella/runtime.c -Ltarget/$BUILD -lstella_gc -o $EXECUTABLE
+    gcc -std=c11 \
+        -DSTELLA_GC_STATS -DSTELLA_RUNTIME_STATS \
+        $FULL_LOC.c stella/runtime.c -Ltarget/$BUILD -lstella_gc -o $EXECUTABLE
 
     export LD_LIBRARY_PATH=target/$BUILD:$LD_LIBRARY_PATH
-    export RUST_LOG=debug
+    export RUST_LOG=info
 fi
 
 rm $FULL_LOC.c
 
-echo 4 | ./$EXECUTABLE 2>&1
+echo 1 | ./$EXECUTABLE 2>&1
 
 rm $EXECUTABLE
