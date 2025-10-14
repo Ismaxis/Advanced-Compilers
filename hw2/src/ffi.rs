@@ -1,10 +1,11 @@
-use std::{ffi::{c_int, c_void}, ptr::null_mut};
+use std::ffi::{c_int, c_void};
 
 #[no_mangle]
 pub extern "C" fn gc_alloc(size_in_bytes: usize) -> *mut c_void {
-    let _ = env_logger::try_init();
     log::debug!("gc_alloc: {}", size_in_bytes);
-    return null_mut();
+
+    let object = crate::alloc(size_in_bytes);
+    return object as *mut c_void;
 }
 
 #[no_mangle]

@@ -40,6 +40,6 @@ fi
 
 rm $FULL_LOC.c
 
-echo 1 | ./$EXECUTABLE 2>&1
+echo 4 | ./$EXECUTABLE 2>&1
 
 rm $EXECUTABLE
