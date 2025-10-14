@@ -43,15 +43,15 @@ pub(crate) fn alloc(size_in_bytes: usize) -> *mut StellaObject {
     allocated
 }
 
-// #[no_mangle]
-// pub(crate) fn read_barrier(object: *mut StellaObject, field_index: usize) {
-//     log::debug!(
-//         "read_barrier: object_addr={:p}, field_index={}",
-//         object,
-//         field_index
-//     );
-//     get_gc().read_barrier(object, field_index);
-// }
+#[no_mangle]
+pub(crate) fn read_barrier(object: *mut StellaObject, field_index: usize) {
+    log::debug!(
+        "read_barrier: object_addr={:p}, field_index={}",
+        object,
+        field_index
+    );
+    get_gc().read_barrier(object, field_index);
+}
 
 #[no_mangle]
 pub(crate) fn write_barrier(
@@ -91,7 +91,7 @@ pub(crate) fn print_state() {
     log::debug!("print_state");
     let gc = get_gc();
 
-    // Print raw memory from heap to free in 8 byte chunks
+    // // Print raw memory from heap to free in 8 byte chunks
     // let mut raw_ptr = gc.heap as *const u8;
     // let raw_end = gc.free as *const u8;
     // println!("Raw memory (heap..free) in 8-byte chunks:");

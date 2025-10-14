@@ -2,9 +2,22 @@ use std::alloc::{GlobalAlloc, Layout};
 
 use crate::{control_block::ControlBlock, types::*};
 
+#[derive(Debug, Default)]
+struct GCStats {
+    pub total_allocations: usize,
+    pub total_allocated_memory: usize,
+    pub gc_cycles: usize,
+    pub max_residency: usize,
+    pub max_residency_memory: usize,
+    pub read_count: usize,
+    pub write_count: usize,
+    pub barrier_triggers: usize,
+}
 
 pub struct GarbageCollector {
-    roots: Vec<*mut *mut StellaObject>,
+    roots: Vec<RootReference>,
+    stats: GCStats,
+
     pub(crate) heap: *mut u8,
     pub(crate) free: *mut u8,
 }
@@ -15,6 +28,7 @@ impl GarbageCollector {
         log::info!("heap start: {:p}", ptr);
         GarbageCollector {
             roots: Vec::new(),
+            stats: GCStats::default(),
             heap: ptr,
             free: ptr,
         }
@@ -33,16 +47,18 @@ impl GarbageCollector {
             unsafe {
                 (*block).some_header = 0xBAAD_F00D_DEAD_BEEFu64;
             }
-        
         }
-        self.free = unsafe {
-            self.free
-                .offset((control_block_header.size() + size_in_bytes) as isize)
-        };
 
-        if self.free.addr() > self.heap.addr() + Self::MAX_ALLOC_SIZE {
+        let allocated_memory = control_block_header.size() + size_in_bytes;
+
+        self.stats.total_allocations += 1;
+        self.stats.total_allocated_memory += allocated_memory;
+
+        if self.free.addr() + allocated_memory > self.heap.addr() + Self::MAX_ALLOC_SIZE {
             panic!("out of memory");
         }
+
+        self.free = unsafe { self.free.offset((allocated_memory) as isize) };
 
         result
     }
@@ -53,6 +69,7 @@ impl GarbageCollector {
     }
 
     pub fn collect(&mut self) {
+        self.stats.gc_cycles += 1;
         // Implement garbage collection logic here
     }
 
@@ -73,16 +90,18 @@ impl GarbageCollector {
         }
     }
 
-    // pub fn read_barrier(&self, _object: *mut StellaObject, _field_index: usize) {
-    //     // Not needed
-    // }
+    pub fn read_barrier(&mut self, _object: *mut StellaObject, _field_index: usize) {
+        self.stats.read_count += 1;
+        // Not needed
+    }
 
     pub fn write_barrier(
-        &self,
+        &mut self,
         _object: *mut StellaObject,
         _field_index: usize,
         _contents: *mut std::ffi::c_void,
     ) {
+        self.stats.write_count += 1;
         // TODO: Implement write barrier logic here
         // They are needed to track references from older generations to younger ones.
         // Without write barriers, the collector may miss live objects in the young generation that
@@ -90,6 +109,16 @@ impl GarbageCollector {
     }
 
     pub fn print_stats(&self) {
-        // Implement statistics printing logic here
+        println!(
+            "Total memory allocation: {} bytes ({} objects)\n\
+            Maximum residency: {} bytes ({} objects)\n\
+            Total memory use: {} reads and {} writes",
+            self.stats.total_allocated_memory,
+            self.stats.total_allocations,
+            "TODO", // self.stats.max_residency_memory,
+            "TODO", // self.stats.max_residency,
+            self.stats.read_count,
+            self.stats.write_count
+        );
     }
 }

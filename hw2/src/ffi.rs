@@ -8,8 +8,8 @@ pub extern "C" fn gc_alloc(size_in_bytes: usize) -> *mut c_void {
 }
 
 #[no_mangle]
-pub extern "C" fn gc_read_barrier(_object: *mut c_void, _field_index: c_int) {
-    // crate::read_barrier(object as *mut StellaObject, field_index as usize);
+pub extern "C" fn gc_read_barrier(object: *mut c_void, field_index: c_int) {
+    crate::read_barrier(object as *mut StellaObject, field_index as usize);
 }
 
 #[no_mangle]

@@ -24,13 +24,4 @@ impl StellaObject {
     }
 }
 
-#[repr(C)]
-pub struct GCStats {
-    pub total_allocated_memory: usize,
-    pub max_residency: usize,
-    pub memory_usage: usize,
-    pub barrier_triggers: usize,
-    pub gc_cycles: usize,
-}
-
 pub type RootReference = *mut *mut StellaObject;
