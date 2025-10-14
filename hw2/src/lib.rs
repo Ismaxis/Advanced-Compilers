@@ -91,25 +91,25 @@ pub(crate) fn print_state() {
     log::debug!("print_state");
     let gc = get_gc();
 
-    // // Print raw memory from heap to free in 8 byte chunks
-    // let mut raw_ptr = gc.heap as *const u8;
-    // let raw_end = gc.free as *const u8;
-    // println!("Raw memory (heap..free) in 8-byte chunks:");
-    // while raw_ptr < raw_end {
-    //     print!("{:p}: ", raw_ptr);
-    //     for i in 0..8 {
-    //         if unsafe { raw_ptr.add(i) } < raw_end {
-    //             print!("{:02x} ", unsafe { *raw_ptr.add(i) });
-    //         } else {
-    //             print!("   ");
-    //         }
-    //     }
-    //     println!();
-    //     raw_ptr = unsafe { raw_ptr.add(8) };
-    // }
+    // Print raw memory from heap to free in 8 byte chunks
+    let mut raw_ptr = gc.from_space as *const u8;
+    let raw_end = gc.next as *const u8;
+    println!("Raw memory (heap..free) in 8-byte chunks:");
+    while raw_ptr < raw_end {
+        print!("{:p}: ", raw_ptr);
+        for i in 0..8 {
+            if unsafe { raw_ptr.add(i) } < raw_end {
+                print!("{:02x} ", unsafe { *raw_ptr.add(i) });
+            } else {
+                print!("   ");
+            }
+        }
+        println!();
+        raw_ptr = unsafe { raw_ptr.add(8) };
+    }
 
-    let mut ptr = gc.heap;
-    let end = gc.free;
+    let mut ptr = gc.from_space;
+    let end = gc.next;
 
     println!("--- GC Heap State ---");
     while ptr < end {
@@ -117,7 +117,7 @@ pub(crate) fn print_state() {
         let block = ptr as *const ControlBlock<StellaObject>;
         let header = unsafe { (*block).some_header };
         let value = unsafe { &(*block).value };
-        let field_count = value.get_field_count();
+        let field_count = value.get_fields_count();
 
         print!("@{:p} [{:x}]", ptr, header);
 
@@ -134,14 +134,14 @@ pub(crate) fn print_state() {
 }
 
 fn print_object_info(value: &StellaObject) {
-    let field_count = value.get_field_count();
+    let field_count = value.get_fields_count();
     print!(" | @{:p} {} {}", value, value.get_tag(), field_count);
 
     // Print fields (if any)
     if field_count > 0 {
         print!(" | ");
         for i in 0..field_count as usize {
-            let field_ptr = unsafe { (&value.fields).add(i) };
+            let field_ptr = value.get_field(i);
             print!("{:p} ", field_ptr);
         }
     }

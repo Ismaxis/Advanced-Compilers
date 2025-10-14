@@ -1,11 +1,13 @@
-use std::{alloc::Layout, ops::Deref};
+use std::alloc::Layout;
 
+#[repr(C)]
 pub struct ControlBlock<T: ?Sized> {
     pub some_header: u64, // TODO:
     pub value: T,
 }
 
 impl<T> ControlBlock<T> {
+    #[allow(dead_code)]
     pub fn new(value: T) -> Self {
         Self {
             some_header: 0xDEADBEEF,
@@ -23,23 +25,19 @@ impl<T> ControlBlock<T> {
 
         let (full_layout, _value_offset) = header.extend(value_layout).unwrap();
         full_layout
-        // (full_layout.pad_to_align(), value_offset)
     }
+
     pub fn header_layout() -> Layout {
         let header = Layout::new::<u64>();
         header
     }
+
+    pub fn get_value(&mut self) -> *mut T {
+        return std::ptr::addr_of_mut!(self.value);
+    }
 }
 
 impl ControlBlock<()> {}
-
-impl<T> Deref for ControlBlock<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -52,7 +50,7 @@ mod tests {
         let ptr = (&control_block.value) as *const i32;
         let rc_ptr = ControlBlock::from_value_ptr(ptr);
         unsafe {
-            assert_eq!(**rc_ptr, 42);
+            assert_eq!(*(*rc_ptr).get_value(), 42);
         }
     }
 }

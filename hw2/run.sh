@@ -37,7 +37,7 @@ elif [[ $LANG == "rust" ]]; then
         $FULL_LOC.c stella/runtime.c -Ltarget/$BUILD -lstella_gc -o $EXECUTABLE
 
     export LD_LIBRARY_PATH=target/$BUILD:$LD_LIBRARY_PATH
-    export RUST_LOG=info
+    export RUST_LOG=trace
 fi
 
 rm $FULL_LOC.c
