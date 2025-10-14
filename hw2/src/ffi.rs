@@ -1,60 +1,43 @@
 use std::ffi::{c_int, c_void};
 
-use crate::gc::{self, GcObject};
+use crate::gc;
 
 #[no_mangle]
 pub extern "C" fn gc_alloc(size_in_bytes: usize) -> *mut c_void {
-    log::trace!("gc_alloc: {}", size_in_bytes);
     return crate::alloc(size_in_bytes) as *mut c_void;
 }
 
 #[no_mangle]
 pub extern "C" fn gc_read_barrier(object: *mut c_void, field_index: c_int) {
-    log::trace!(
-        "gc_read_barrier: object={:?}, field_index={}",
-        object,
-        field_index
-    );
     crate::read_barrier(object as *mut gc::GcObject, field_index as usize);
 }
 
 #[no_mangle]
 pub extern "C" fn gc_write_barrier(object: *mut c_void, field_index: c_int, contents: *mut c_void) {
-    log::trace!(
-        "gc_write_barrier: object={:?}, field_index={}, contents={:?}",
-        object,
-        field_index,
-        contents
-    );
     crate::write_barrier(object as *mut gc::GcObject, field_index as usize, contents);
 }
 
 #[no_mangle]
 pub extern "C" fn gc_push_root(object: *mut *mut c_void) {
-    log::trace!("gc_push_root: object={:?}", object);
-    crate::push_root(object as *mut *mut GcObject);
+    crate::push_root(object as *mut *mut gc::GcObject);
 }
 
 #[no_mangle]
 pub extern "C" fn gc_pop_root(object: *mut *mut c_void) {
-    log::trace!("gc_pop_root: object={:?}", object);
-    crate::pop_root(object as *mut *mut GcObject);
+    crate::pop_root(object as *mut *mut gc::GcObject);
 }
 
 #[no_mangle]
 pub extern "C" fn print_gc_alloc_stats() {
-    log::trace!("print_gc_alloc_stats");
     crate::print_alloc_stats();
 }
 
 #[no_mangle]
 pub extern "C" fn print_gc_state() {
-    log::trace!("print_gc_state");
     crate::print_state();
 }
 
 #[no_mangle]
 pub extern "C" fn print_gc_roots() {
-    log::trace!("print_gc_roots");
     crate::print_roots();
 }
