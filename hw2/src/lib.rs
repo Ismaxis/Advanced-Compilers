@@ -38,9 +38,8 @@ fn get_gc() -> &'static mut gc::GarbageCollector {
 
 #[no_mangle]
 pub(crate) fn alloc(size_in_bytes: usize) -> *mut StellaObject {
-    // print_state();
     let allocated = get_gc().alloc(size_in_bytes);
-    log::info!("alloc: {} => {:p}", size_in_bytes, allocated);
+    log::debug!("alloc: {} => {:p}", size_in_bytes, allocated);
     allocated
 }
 

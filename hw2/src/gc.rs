@@ -65,17 +65,16 @@ impl GarbageCollector {
     pub fn alloc(&mut self, size_in_bytes: usize) -> *mut StellaObject {
         log::debug!("alloc {}", size_in_bytes);
         let control_block_header_size = ControlBlock::header_layout().size();
-        let allocated_memory = control_block_header_size + size_in_bytes;
+        let requested_memory_size = control_block_header_size + size_in_bytes;
 
         self.stats.total_allocations += 1;
-        self.stats.total_allocated_memory += allocated_memory;
+        self.stats.total_allocated_memory += requested_memory_size;
 
-        if self.next.addr() + allocated_memory
+        if self.next.addr() + requested_memory_size
             > self.from_space.addr() + Self::space_size(self.max_alloc_size)
         {
             if let None = self.collect() {
-                log::error!("out of memory {}", self.stats.gc_cycles);
-                panic!("out of memory");
+                self.out_of_memory();
             }
 
             self.stats.max_residency_memory = std::cmp::max(
@@ -84,11 +83,23 @@ impl GarbageCollector {
             );
         }
 
+        // second check, if not enough was freed
+        if self.next.addr() + requested_memory_size
+            > self.from_space.addr() + Self::space_size(self.max_alloc_size)
+        {
+            self.out_of_memory();
+        }
+
         let block = ControlBlock::from_ptr(self.next);
 
         let result = block.get_value().as_ptr();
-        self.next = unsafe { self.next.offset(allocated_memory as isize) };
+        self.next = unsafe { self.next.add(requested_memory_size) };
         result
+    }
+
+    fn out_of_memory(&self) {
+        log::error!("out of memory {}", self.stats.gc_cycles);
+        panic!("out of memory");
     }
 
     pub fn collect(&mut self) -> Option<()> {
@@ -187,6 +198,10 @@ impl GarbageCollector {
                 );
                 return None;
             }
+            log::debug!(
+                "space left: {}",
+                self.to_space.addr() + Self::space_size(self.max_alloc_size) - self.next.addr()
+            );
 
             let mut r: Option<&mut ControlBlock> = None;
             let p_object = p.get_value();
@@ -271,17 +286,16 @@ impl GarbageCollector {
     ) {
         self.stats.write_count += 1;
         // TODO: Implement write barrier logic here
-        // They are needed to track references from older generations to younger ones.
-        // Without write barriers, the collector may miss live objects in the young generation that
-        // are only reachable from the old generation, leading to incorrect collection (premature deallocation).
     }
 
     pub fn print_stats(&self) {
         println!(
-            "GC Cycles: {}\n\
+            "MAX_ALLOC_SIZE: {}\n\
+            GC Cycles: {}\n\
             Total memory allocation: {} bytes ({} objects)\n\
             Maximum residency: {} bytes ({} objects)\n\
             Total memory use: {} reads and {} writes",
+            self.max_alloc_size,
             self.stats.gc_cycles,
             self.stats.total_allocated_memory,
             self.stats.total_allocations,
@@ -403,15 +417,12 @@ mod tests {
         assert_eq!((gc.next.addr() - gc.from_space.addr()) / 32, 6 + 1);
     }
 
-    /// Describe a Stella object for test setup
     #[derive(Debug, Clone)]
     pub struct TestObjectSpec {
         pub field_count: usize,
-        pub field_refs: Vec<Option<usize>>, // Indexes into the object list, or None for null
+        pub field_refs: Vec<Option<usize>>,
     }
 
-    /// Allocates objects in the GC heap according to the given specification.
-    /// Returns a Vec of pointers to the allocated objects.
     pub fn setup_test_objects(
         gc: &mut GarbageCollector,
         specs: &[TestObjectSpec],
@@ -420,10 +431,7 @@ mod tests {
 
         for (i, spec) in specs.iter().enumerate() {
             let obj_ptr = gc.alloc(StellaObject::get_layout(spec.field_count).size());
-            unsafe {
-                // (*obj_ptr).init_fields(spec.field_count);
-                (*obj_ptr).set_header((spec.field_count << 4 | (i * 3 + 1) << 16) as i32)
-            }
+            unsafe { (*obj_ptr).set_header((spec.field_count << 4 | (i * 3 + 1) << 16) as i32) }
             ptrs.push(obj_ptr);
         }
 

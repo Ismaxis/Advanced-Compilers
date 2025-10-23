@@ -9,7 +9,9 @@ docker run -i fizruk/stella compile < tests/$TEST_NAME.st > $TEST_NAME.c
 
 LANG="rust"
 BUILD=debug
-while getopts "l:" opt; do
+MAX_ALLOC_SIZE=1024
+ARG=2
+while getopts "l:b:m:a:" opt; do
     case $opt in
         l)
             LANG=$OPTARG
@@ -17,10 +19,16 @@ while getopts "l:" opt; do
         b)
             BUILD=$OPTARG
             ;;
+        m)
+            MAX_ALLOC_SIZE=$OPTARG
+            ;;
+        a)
+            ARG=$OPTARG
+            ;;
     esac
 done
 
-echo "[$BUILD]" $LANG 
+echo "[$BUILD]" $LANG $MAX_ALLOC_SIZE
 
 EXECUTABLE=build/$FULL_LOC-$LANG
 
@@ -33,15 +41,15 @@ elif [[ $LANG == "rust" ]]; then
         cargo build --$BUILD 2> build/cargo.log 1> build/cargo.log
     fi
     gcc -std=c11 \
-        -DSTELLA_GC_STATS -DSTELLA_RUNTIME_STATS -DMAX_ALLOC_SIZE=480 \
+        -DSTELLA_GC_STATS -DSTELLA_RUNTIME_STATS -DMAX_ALLOC_SIZE=$MAX_ALLOC_SIZE \
         $FULL_LOC.c stella/runtime.c -Ltarget/$BUILD -lstella_gc -o $EXECUTABLE
 
     export LD_LIBRARY_PATH=target/$BUILD:$LD_LIBRARY_PATH
-    export RUST_LOG=trace
+    export RUST_LOG=error
 fi
 
 rm $FULL_LOC.c
 
-echo 2 | ./$EXECUTABLE 2>&1
+echo $ARG | ./$EXECUTABLE 2>&1
 
 rm $EXECUTABLE
