@@ -10,9 +10,11 @@ use crate::types::*;
 
 #[ctor]
 fn init() {
-    let err = env_logger::try_init();
-    if let Err(err) = err {
-        println!("unable to init logger for GC: {}", err.to_string())
+    if !cfg!(test) {
+        let err = env_logger::try_init();
+        if let Err(err) = err {
+            println!("unable to init logger for GC: {}", err.to_string())
+        }
     }
 
     log::debug!("GC initializing!");
@@ -70,19 +72,13 @@ pub(crate) fn write_barrier(
 #[no_mangle]
 pub(crate) fn push_root(object: *mut *mut StellaObject) {
     log::debug!("push_root: object={:p} to={:p}", object, unsafe { *object });
-    get_gc().push_root(convert_to_reference(object));
-}
-
-fn convert_to_reference(object: *mut *mut StellaObject) -> StellaVarOrField {
-    let ptr_to_ref =
-        unsafe { std::mem::transmute::<*mut *mut StellaObject, *mut StellaReference>(object) };
-    StellaVarOrField(ptr_to_ref)
+    get_gc().push_root(StellaVarOrField::from_reference(object));
 }
 
 #[no_mangle]
 pub(crate) fn pop_root(object: *mut *mut StellaObject) {
     log::debug!("pop_root: object={:p} to={:p}", object, unsafe { *object });
-    get_gc().pop_root(convert_to_reference(object));
+    get_gc().pop_root(StellaVarOrField::from_reference(object));
 }
 
 #[no_mangle]
@@ -139,17 +135,17 @@ fn print_heap_objects(mut ptr: *mut u8, end: *mut u8) {
 
 pub(crate) fn print_memory_chunks(mut raw_ptr: *const u8, raw_end: *const u8) {
     while raw_ptr < raw_end {
-        if log::log_enabled!(log::Level::Debug) {
-            print!("{:p}: ", raw_ptr);
-            for i in 0..8 {
-                if unsafe { raw_ptr.add(i) } < raw_end {
-                    print!("{:02x} ", unsafe { *raw_ptr.add(i) });
-                } else {
-                    print!("   ");
-                }
+        // if log::log_enabled!(log::Level::Debug) {
+        let mut line = format!("{:p}: ", raw_ptr);
+        for i in 0..8 {
+            if unsafe { raw_ptr.add(i) } < raw_end {
+                line.push_str(&format!("{:02x} ", unsafe { *raw_ptr.add(i) }));
+            } else {
+                line.push_str("   ");
             }
-            println!("");
         }
+        log::trace!("{}", line);
+        // }
         raw_ptr = unsafe { raw_ptr.add(8) };
     }
 }

@@ -34,6 +34,12 @@ impl StellaVarOrField {
             *self.0 = ptr;
         }
     }
+
+    pub fn from_reference(object: *mut *mut StellaObject) -> StellaVarOrField {
+        let ptr_to_ref =
+            unsafe { std::mem::transmute::<*mut *mut StellaObject, *mut StellaReference>(object) };
+        StellaVarOrField(ptr_to_ref)
+    }
 }
 
 impl Deref for StellaVarOrField {
@@ -90,5 +96,15 @@ impl StellaObject {
 
     pub fn from_ptr(ptr: *mut u8) -> *mut StellaObject {
         ptr as *mut StellaObject
+    }
+
+    pub fn init_fields(&mut self, field_count: usize) {
+        self.header &= !Self::FIELD_COUNT_MASK;
+        self.header |= ((field_count as i32) << 4) & Self::FIELD_COUNT_MASK;
+    }
+
+    pub unsafe fn set_field(&mut self, index: usize, value: *mut StellaObject) {
+        let fields_ptr = std::ptr::addr_of!(self.fields) as *mut *mut StellaObject;
+        *fields_ptr.add(index) = value;
     }
 }

@@ -27,7 +27,7 @@ pub struct GarbageCollector {
 }
 
 impl GarbageCollector {
-    const MAX_ALLOC_SIZE: usize = 512;
+    const MAX_ALLOC_SIZE: usize = 320 * 2;
     pub(crate) const SPACE_SIZE: usize = Self::MAX_ALLOC_SIZE / 2;
 
     pub fn new() -> Self {
@@ -78,9 +78,10 @@ impl GarbageCollector {
     }
 
     pub fn collect(&mut self) -> Option<()> {
-        log::debug!("collection started");
-
-        print_state();
+        log::info!("collection started");
+        if log::log_enabled!(log::Level::Debug) {
+            print_state();
+        }
 
         self.stats.gc_cycles += 1;
         self.next = self.to_space;
@@ -118,7 +119,9 @@ impl GarbageCollector {
         }
 
         log::info!("collection ended");
-        print_state();
+        if log::log_enabled!(log::Level::Debug) {
+            print_state();
+        }
 
         Some(())
     }
@@ -179,13 +182,11 @@ impl GarbageCollector {
 
             if log::log_enabled!(log::Level::Trace) {
                 log::trace!("== BEFORE ==");
-                print_memory_chunks(p.as_ptr() as *const u8, unsafe {
-                    (p.as_ptr() as *const u8).add(p.get_size())
+                print_memory_chunks(self.from_space as *const u8, unsafe {
+                    (self.from_space as *const u8).add(Self::SPACE_SIZE)
                 });
                 log::trace!("");
-                print_memory_chunks(q.as_ptr() as *const u8, unsafe {
-                    (q.as_ptr() as *const u8).add(p.get_size())
-                });
+                print_memory_chunks(self.to_space as *const u8, self.next as *const u8);
             }
 
             // copy stella header
@@ -194,11 +195,11 @@ impl GarbageCollector {
             for field_idx in 0..field_count as usize {
                 let mut qfi = q_object.get_field(field_idx);
                 let pfi = p_object.get_field(field_idx);
-                log::trace!("i: {}, write at {:p}", field_idx, qfi.0);
+                // log::trace!("i: {}, write at {:p}", field_idx, qfi.0);
                 qfi.write(*pfi);
 
                 if self.points_to_fromspace((*qfi).as_ptr())
-                    && !self.points_to_tospace((*(*qfi).get_field(1)).as_ptr())
+                    && !self.points_to_tospace((*(*qfi).get_field(0)).as_ptr())
                 {
                     r = Some(ControlBlock::from_var_of_field(qfi));
                 }
@@ -208,15 +209,12 @@ impl GarbageCollector {
 
             if log::log_enabled!(log::Level::Trace) {
                 log::trace!("== AFTER ==");
-                print_memory_chunks(p.as_ptr() as *const u8, unsafe {
-                    (p.as_ptr() as *const u8).add(p.get_size())
+                print_memory_chunks(self.from_space as *const u8, unsafe {
+                    (self.from_space as *const u8).add(Self::SPACE_SIZE)
                 });
                 log::trace!("");
-                print_memory_chunks(q.as_ptr() as *const u8, unsafe {
-                    (q.as_ptr() as *const u8).add(p.get_size())
-                });
+                print_memory_chunks(self.to_space as *const u8, self.next as *const u8);
             }
-
             if let Some(t) = r {
                 p = t;
             } else {
@@ -300,6 +298,136 @@ impl GarbageCollector {
     }
 
     fn points_to_space<T, U>(p: *mut T, space_start: *mut U) -> bool {
-        space_start.addr() <= p.addr() && p.addr() < space_start.addr() + Self::SPACE_SIZE
+        let start_address = space_start.addr();
+        let pointer_address = p.addr();
+        let end_address = space_start.addr() + Self::SPACE_SIZE;
+        start_address <= pointer_address && pointer_address < end_address
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gc_state_from_hw1() {
+        env_logger::builder().is_test(true).filter_level(log::LevelFilter::Trace).init();
+        let mut gc = crate::get_gc();
+        let specs = vec![
+            // 1
+            TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, None, Some(7 / 3)],
+            },
+            // 4
+            TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, Some(19 / 3), None],
+            },
+            // 7
+            TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, None, Some(13 / 3)],
+            },
+            // 10
+            TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, Some(16 / 3), None],
+            },
+            // 13
+            TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, Some(10 / 3), Some(16 / 3)],
+            },
+            // 16
+            TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, Some(7 / 3), Some(25 / 3)],
+            },
+            // 19
+            TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, Some(4 / 3), Some(22 / 3)],
+            },
+            // 22
+            TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, Some(19 / 3), Some(4 / 3)],
+            },
+            // 25
+            TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, None, Some(1 / 3)],
+            },
+        ];
+
+        let mut objs = setup_test_objects(&mut gc, &specs);
+        gc.push_root(StellaVarOrField::from_reference(unsafe {
+            objs.as_mut_ptr().add(3)
+        }));
+        print_state();
+        _ = setup_test_objects(
+            &mut gc,
+            &vec![TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, None, None],
+            }],
+        );
+        println!(
+            "================================================================================="
+        );
+        print_state();
+        _ = setup_test_objects(
+            &mut gc,
+            &vec![TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, None, None],
+            }],
+        );
+        println!(
+            "================================================================================="
+        );
+        print_state();
+    }
+
+    /// Describe a Stella object for test setup
+    #[derive(Debug, Clone)]
+    pub struct TestObjectSpec {
+        pub field_count: usize,
+        pub field_refs: Vec<Option<usize>>, // Indexes into the object list, or None for null
+    }
+
+    /// Allocates objects in the GC heap according to the given specification.
+    /// Returns a Vec of pointers to the allocated objects.
+    pub fn setup_test_objects(
+        gc: &mut GarbageCollector,
+        specs: &[TestObjectSpec],
+    ) -> Vec<*mut StellaObject> {
+        let mut ptrs = Vec::with_capacity(specs.len());
+
+        for (i, spec) in specs.iter().enumerate()  {
+            let obj_ptr = gc.alloc(StellaObject::get_layout(spec.field_count).size());
+            unsafe {
+                // (*obj_ptr).init_fields(spec.field_count);
+                (*obj_ptr).set_header((spec.field_count << 4 | (i * 3 + 1) << 16) as i32)
+            }
+            ptrs.push(obj_ptr);
+        }
+
+        for (i, spec) in specs.iter().enumerate() {
+            for (field_idx, ref_idx_opt) in spec.field_refs.iter().enumerate() {
+                if let Some(ref_idx) = ref_idx_opt {
+                    unsafe {
+                        (*ptrs[i]).set_field(field_idx, ptrs[*ref_idx]);
+                    }
+                } else {
+                    unsafe {
+                        (*ptrs[i]).set_field(field_idx, 0xBAADF00DDEADBEEFu64 as *mut StellaObject);
+                    }
+                }
+            }
+        }
+
+        ptrs
     }
 }
