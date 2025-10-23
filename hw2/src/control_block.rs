@@ -2,9 +2,11 @@ use std::alloc::Layout;
 
 use crate::types::{StellaObject, StellaReference, StellaVarOrField};
 
+type ControlBlockHeader = ();
+
 #[repr(C)]
 pub struct ControlBlock {
-    pub some_header: u64, // TODO:
+    pub some_header: ControlBlockHeader, // TODO:
     pub value: StellaObject,
 }
 
@@ -38,7 +40,7 @@ impl ControlBlock {
     }
 
     pub fn header_layout() -> Layout {
-        let header = Layout::new::<u64>();
+        let header = Layout::new::<ControlBlockHeader>();
         header
     }
 

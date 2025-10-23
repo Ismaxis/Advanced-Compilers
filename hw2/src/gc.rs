@@ -27,7 +27,7 @@ pub struct GarbageCollector {
 }
 
 impl GarbageCollector {
-    const MAX_ALLOC_SIZE: usize = 1024 + 512;
+    const MAX_ALLOC_SIZE: usize = 512;
     pub(crate) const SPACE_SIZE: usize = Self::MAX_ALLOC_SIZE / 2;
 
     pub fn new() -> Self {
@@ -51,6 +51,10 @@ impl GarbageCollector {
         unsafe { std::alloc::System.dealloc(smallest, Self::heap_layout()) };
     }
 
+    fn heap_layout() -> Layout {
+        Layout::array::<usize>(Self::MAX_ALLOC_SIZE).unwrap()
+    }
+
     pub fn alloc(&mut self, size_in_bytes: usize) -> *mut StellaObject {
         log::debug!("alloc {}", size_in_bytes);
         let control_block_header_size = ControlBlock::header_layout().size();
@@ -67,19 +71,10 @@ impl GarbageCollector {
         }
 
         let block = ControlBlock::from_ptr(self.next);
-        {
-            // TODO: remove
-            // block.some_header = 0xBAAD_F00D_DEAD_BEEFu64;
-            block.some_header = 0xFFFF_FFFF_FFFF_FFFFu64;
-        }
 
         let result = block.get_value().as_ptr();
         self.next = unsafe { self.next.offset(allocated_memory as isize) };
         result
-    }
-
-    fn heap_layout() -> Layout {
-        Layout::array::<usize>(Self::MAX_ALLOC_SIZE).unwrap()
     }
 
     pub fn collect(&mut self) -> Option<()> {
@@ -99,7 +94,7 @@ impl GarbageCollector {
                 log::trace!("strange root {:p}", *r);
                 continue;
             }
-            r.write(self.forward(ControlBlock::from_var_of_field(r))?); // TODO: make pretty macro
+            r.write(self.forward(ControlBlock::from_var_of_field(r))?);
             log::trace!("root scanned {:p} -> {:p}", r.0, *r);
             log::trace!("");
         }
@@ -111,7 +106,6 @@ impl GarbageCollector {
 
             for field_idx in 0..field_count as usize {
                 let mut field = object.get_field(field_idx);
-                // TODO: check tags ???
                 field.write(self.forward(ControlBlock::from_var_of_field(field))?);
             }
             scan = unsafe { scan.add(block.get_size()) }
@@ -129,26 +123,8 @@ impl GarbageCollector {
         Some(())
     }
 
-    fn points_to_fromspace<T>(&self, p: *mut T) -> bool {
-        Self::points_to_space(p, self.from_space)
-    }
-
-    fn points_to_tospace<T>(&self, p: *mut T) -> bool {
-        Self::points_to_space(p, self.to_space)
-    }
-
-    fn points_to_space<T, U>(p: *mut T, space_start: *mut U) -> bool {
-        space_start.addr() <= p.addr() && p.addr() < space_start.addr() + Self::SPACE_SIZE
-    }
-
-    pub(crate) fn is_controller_ptr<T>(&self, p: *mut T) -> bool {
-        self.points_to_fromspace(p) || self.points_to_tospace(p)
-    }
-
     fn forward(&mut self, p: &mut ControlBlock) -> Option<StellaReference> {
         log::trace!("forward block {:p}", p.as_ptr());
-        // TODO: check tags ???
-        // unknown ptr
         if !self.points_to_fromspace(p.as_ptr()) {
             log::trace!("not from fromspace {:p}", p.as_ptr());
             return Some(p.get_value());
@@ -175,7 +151,7 @@ impl GarbageCollector {
         if self.is_controller_ptr(p.as_ptr()) {
             self.chase(p)?;
         }
-        return Some(*f1); // TODO: ??? p.get_value().get_field(1).as_ptr();
+        return Some(*f1);
     }
 
     fn chase(&mut self, mut p: &mut ControlBlock) -> Option<()> {
@@ -212,7 +188,6 @@ impl GarbageCollector {
                 });
             }
 
-            // TODO: copy control block header
             // copy stella header
             q_object.set_header(p_object.header);
             // copy stella object fields
@@ -260,8 +235,7 @@ impl GarbageCollector {
             if top != object {
                 log::error!(
                     "Tried to pop a root that does not match the top of the stack. top was: {:p}, got: {:p}",
-                    *top,
-                    *object
+                    *top, *object
                 );
             }
         } else {
@@ -311,5 +285,21 @@ impl GarbageCollector {
         for (i, root) in self.roots.iter().enumerate() {
             println!("  [{}] {:p}", i, (*root).as_ptr());
         }
+    }
+
+    pub(crate) fn is_controller_ptr<T>(&self, p: *mut T) -> bool {
+        self.points_to_fromspace(p) || self.points_to_tospace(p)
+    }
+
+    fn points_to_fromspace<T>(&self, p: *mut T) -> bool {
+        Self::points_to_space(p, self.from_space)
+    }
+
+    fn points_to_tospace<T>(&self, p: *mut T) -> bool {
+        Self::points_to_space(p, self.to_space)
+    }
+
+    fn points_to_space<T, U>(p: *mut T, space_start: *mut U) -> bool {
+        space_start.addr() <= p.addr() && p.addr() < space_start.addr() + Self::SPACE_SIZE
     }
 }

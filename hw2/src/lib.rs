@@ -3,9 +3,7 @@ pub mod ffi;
 pub mod gc;
 pub mod types;
 
-use ctor::ctor;
-use ctor::dtor;
-use libc::sprintf;
+use ctor::{ctor, dtor};
 
 use crate::control_block::ControlBlock;
 use crate::types::*;
@@ -106,10 +104,8 @@ pub(crate) fn print_state() {
     gc.print_roots();
 
     let raw_end = unsafe { gc.from_space.add(gc::GarbageCollector::SPACE_SIZE) };
-    // println!("Raw memory (heap..free) in 8-byte chunks:");
-    // print_memory_chunks(gc.from_space, raw_end);
-
-    // gc.
+    println!("Raw memory (heap..free) in 8-byte chunks:");
+    print_memory_chunks(gc.from_space, raw_end);
 
     println!("--- GC FromSpace State ---");
     print_heap_objects(gc.from_space, raw_end);
@@ -124,7 +120,7 @@ pub(crate) fn print_state() {
 fn print_heap_objects(mut ptr: *mut u8, end: *mut u8) {
     while ptr < end {
         let block = ptr as *const ControlBlock;
-        let header = unsafe { (*block).some_header };
+        let header = 0; //unsafe { (*block).some_header };
         let value = unsafe { &(*block).value };
         let field_count = value.get_fields_count();
 
