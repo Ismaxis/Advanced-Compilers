@@ -11,7 +11,7 @@ struct GCStats {
     pub total_allocated_memory: usize,
     pub gc_cycles: usize,
     pub _max_residency: usize,
-    pub _max_residency_memory: usize,
+    pub max_residency_memory: usize,
     pub read_count: usize,
     pub write_count: usize,
     pub _barrier_triggers: usize,
@@ -77,6 +77,11 @@ impl GarbageCollector {
                 log::error!("out of memory {}", self.stats.gc_cycles);
                 panic!("out of memory");
             }
+
+            self.stats.max_residency_memory = std::cmp::max(
+                self.stats.max_residency_memory,
+                self.next.addr() - self.from_space.addr(),
+            );
         }
 
         let block = ControlBlock::from_ptr(self.next);
@@ -280,7 +285,7 @@ impl GarbageCollector {
             self.stats.gc_cycles,
             self.stats.total_allocated_memory,
             self.stats.total_allocations,
-            "TODO", // self.stats.max_residency_memory,
+            self.stats.max_residency_memory,
             "TODO", // self.stats.max_residency,
             self.stats.read_count,
             self.stats.write_count

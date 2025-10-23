@@ -33,7 +33,7 @@ elif [[ $LANG == "rust" ]]; then
         cargo build --$BUILD 2> build/cargo.log 1> build/cargo.log
     fi
     gcc -std=c11 \
-        -DSTELLA_GC_STATS -DSTELLA_RUNTIME_STATS \
+        -DSTELLA_GC_STATS -DSTELLA_RUNTIME_STATS -DMAX_ALLOC_SIZE=480 \
         $FULL_LOC.c stella/runtime.c -Ltarget/$BUILD -lstella_gc -o $EXECUTABLE
 
     export LD_LIBRARY_PATH=target/$BUILD:$LD_LIBRARY_PATH
@@ -42,6 +42,6 @@ fi
 
 rm $FULL_LOC.c
 
-echo 1 | ./$EXECUTABLE 2>&1
+echo 2 | ./$EXECUTABLE 2>&1
 
 rm $EXECUTABLE
