@@ -8,6 +8,7 @@ libc = "0.2"
 log = "0.4"
 env_logger = "0.10"
 ctor = "0.2"
+c-enum = "0.2.3"
 
 [lib]
 name = "stella_gc"

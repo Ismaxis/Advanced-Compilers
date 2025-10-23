@@ -1,22 +1,32 @@
 use std::alloc::Layout;
 
+use crate::types::{StellaObject, StellaReference, StellaVarOrField};
+
 #[repr(C)]
-pub struct ControlBlock<T: ?Sized> {
+pub struct ControlBlock {
     pub some_header: u64, // TODO:
-    pub value: T,
+    pub value: StellaObject,
 }
 
-impl<T> ControlBlock<T> {
-    #[allow(dead_code)]
-    pub fn new(value: T) -> Self {
-        Self {
-            some_header: 0xDEADBEEF,
-            value,
-        }
+impl ControlBlock {
+    pub(crate) fn ptr_to_ref<T>(value: *mut T) -> &'static mut T {
+        unsafe { value.as_mut::<'static>() }.unwrap()
     }
 
-    pub fn from_value_ptr(value: *const T) -> *mut Self {
-        let offset = std::mem::offset_of!(ControlBlock<T>, value);
+    pub fn as_ptr(&mut self) -> *mut Self {
+        std::ptr::addr_of_mut!(*self)
+    }
+
+    pub fn from_ptr<T>(value: *mut T) -> &'static mut Self {
+        Self::ptr_to_ref(value as *mut ControlBlock)
+    }
+
+    pub fn from_var_of_field(root: StellaVarOrField) -> &'static mut Self {
+        Self::from_ptr(Self::from_value_ptr(*root))
+    }
+
+    fn from_value_ptr(value: *const StellaObject) -> *mut Self {
+        let offset = std::mem::offset_of!(ControlBlock, value);
         (value as *const u8).wrapping_sub(offset) as *mut Self
     }
 
@@ -32,25 +42,14 @@ impl<T> ControlBlock<T> {
         header
     }
 
-    pub fn get_value(&mut self) -> *mut T {
-        return std::ptr::addr_of_mut!(self.value);
+    pub fn get_value(&mut self) -> StellaReference {
+        Self::ptr_to_ref(std::ptr::addr_of_mut!(self.value))
     }
-}
 
-impl ControlBlock<()> {}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_from_value_ptr() {
-        let value = 42;
-        let control_block = ControlBlock::new(value);
-        let ptr = (&control_block.value) as *const i32;
-        let rc_ptr = ControlBlock::from_value_ptr(ptr);
-        unsafe {
-            assert_eq!(*(*rc_ptr).get_value(), 42);
-        }
+    pub fn get_size(&mut self) -> usize {
+        Self::control_block_layout(StellaObject::get_layout(
+            self.value.get_fields_count() as usize
+        ))
+        .size()
     }
 }

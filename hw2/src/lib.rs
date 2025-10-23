@@ -5,6 +5,7 @@ pub mod types;
 
 use ctor::ctor;
 use ctor::dtor;
+use libc::sprintf;
 
 use crate::control_block::ControlBlock;
 use crate::types::*;
@@ -37,7 +38,7 @@ fn get_gc() -> &'static mut gc::GarbageCollector {
 
 #[no_mangle]
 pub(crate) fn alloc(size_in_bytes: usize) -> *mut StellaObject {
-    print_state();
+    // print_state();
     let allocated = get_gc().alloc(size_in_bytes);
     log::info!("alloc: {} => {:p}", size_in_bytes, allocated);
     allocated
@@ -45,11 +46,11 @@ pub(crate) fn alloc(size_in_bytes: usize) -> *mut StellaObject {
 
 #[no_mangle]
 pub(crate) fn read_barrier(object: *mut StellaObject, field_index: usize) {
-    log::debug!(
-        "read_barrier: object_addr={:p}, field_index={}",
-        object,
-        field_index
-    );
+    // log::debug!(
+    //     "read_barrier: object_addr={:p}, field_index={}",
+    //     object,
+    //     field_index
+    // );
     get_gc().read_barrier(object, field_index);
 }
 
@@ -59,25 +60,31 @@ pub(crate) fn write_barrier(
     field_index: usize,
     contents: *mut std::ffi::c_void,
 ) {
-    log::debug!(
-        "write_barrier: object={:p}, field_index={}, contents={:p}",
-        object,
-        field_index,
-        contents
-    );
+    // log::debug!(
+    //     "write_barrier: object={:p}, field_index={}, contents={:p}",
+    //     object,
+    //     field_index,
+    //     contents
+    // );
     get_gc().write_barrier(object, field_index, contents);
 }
 
 #[no_mangle]
 pub(crate) fn push_root(object: *mut *mut StellaObject) {
     log::debug!("push_root: object={:p} to={:p}", object, unsafe { *object });
-    get_gc().push_root(object);
+    get_gc().push_root(convert_to_reference(object));
+}
+
+fn convert_to_reference(object: *mut *mut StellaObject) -> StellaVarOrField {
+    let ptr_to_ref =
+        unsafe { std::mem::transmute::<*mut *mut StellaObject, *mut StellaReference>(object) };
+    StellaVarOrField(ptr_to_ref)
 }
 
 #[no_mangle]
 pub(crate) fn pop_root(object: *mut *mut StellaObject) {
     log::debug!("pop_root: object={:p} to={:p}", object, unsafe { *object });
-    get_gc().pop_root(object);
+    get_gc().pop_root(convert_to_reference(object));
 }
 
 #[no_mangle]
@@ -91,30 +98,32 @@ pub(crate) fn print_state() {
     log::debug!("print_state");
     let gc = get_gc();
 
-    // Print raw memory from heap to free in 8 byte chunks
-    let mut raw_ptr = gc.from_space as *const u8;
-    let raw_end = gc.next as *const u8;
-    println!("Raw memory (heap..free) in 8-byte chunks:");
-    while raw_ptr < raw_end {
-        print!("{:p}: ", raw_ptr);
-        for i in 0..8 {
-            if unsafe { raw_ptr.add(i) } < raw_end {
-                print!("{:02x} ", unsafe { *raw_ptr.add(i) });
-            } else {
-                print!("   ");
-            }
-        }
-        println!();
-        raw_ptr = unsafe { raw_ptr.add(8) };
-    }
+    println!(
+        "from_space: {:p} next: {:p} to_space: {:p}",
+        gc.from_space, gc.next, gc.to_space
+    );
 
-    let mut ptr = gc.from_space;
-    let end = gc.next;
+    gc.print_roots();
 
-    println!("--- GC Heap State ---");
+    let raw_end = unsafe { gc.from_space.add(gc::GarbageCollector::SPACE_SIZE) };
+    // println!("Raw memory (heap..free) in 8-byte chunks:");
+    // print_memory_chunks(gc.from_space, raw_end);
+
+    // gc.
+
+    println!("--- GC FromSpace State ---");
+    print_heap_objects(gc.from_space, raw_end);
+    println!("--- End of FromSpace ---");
+    // println!("--- GC ToSpace State ---");
+    // print_memory_chunks(gc.to_space, unsafe {
+    //     gc.to_space.add(gc::GarbageCollector::SPACE_SIZE)
+    // });
+    // println!("--- End of ToSpace ---");
+}
+
+fn print_heap_objects(mut ptr: *mut u8, end: *mut u8) {
     while ptr < end {
-        // Interpret ptr as a ControlBlock<StellaObject>
-        let block = ptr as *const ControlBlock<StellaObject>;
+        let block = ptr as *const ControlBlock;
         let header = unsafe { (*block).some_header };
         let value = unsafe { &(*block).value };
         let field_count = value.get_fields_count();
@@ -126,23 +135,44 @@ pub(crate) fn print_state() {
 
         // Advance ptr to next object
         let obj_layout = StellaObject::get_layout(field_count as usize);
-        let block_layout = ControlBlock::<StellaObject>::header_layout();
+        let block_layout = ControlBlock::header_layout();
         let obj_size = block_layout.size() + obj_layout.size();
         ptr = unsafe { ptr.add(obj_size) };
     }
-    println!("--- End of Heap ---");
+}
+
+pub(crate) fn print_memory_chunks(mut raw_ptr: *const u8, raw_end: *const u8) {
+    while raw_ptr < raw_end {
+        if log::log_enabled!(log::Level::Debug) {
+            print!("{:p}: ", raw_ptr);
+            for i in 0..8 {
+                if unsafe { raw_ptr.add(i) } < raw_end {
+                    print!("{:02x} ", unsafe { *raw_ptr.add(i) });
+                } else {
+                    print!("   ");
+                }
+            }
+            println!("");
+        }
+        raw_ptr = unsafe { raw_ptr.add(8) };
+    }
 }
 
 fn print_object_info(value: &StellaObject) {
+    let gc = get_gc();
     let field_count = value.get_fields_count();
-    print!(" | @{:p} {} {}", value, value.get_tag(), field_count);
+    print!(" | @{:p} {:?} {}", value, value.get_tag(), field_count);
 
     // Print fields (if any)
     if field_count > 0 {
         print!(" | ");
         for i in 0..field_count as usize {
             let field_ptr = value.get_field(i);
-            print!("{:p} ", field_ptr);
+            if gc.is_controller_ptr(field_ptr.as_ptr()) {
+                print!("{:p} ", *field_ptr);
+            } else {
+                print!("0xXXXXXXXXXXXX ");
+            }
         }
     }
 }
