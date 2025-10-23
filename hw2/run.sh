@@ -10,8 +10,8 @@ docker run -i fizruk/stella compile < tests/$TEST_NAME.st > $TEST_NAME.c
 LANG="rust"
 BUILD=debug
 MAX_ALLOC_SIZE=1024
-ARG=2
-while getopts "l:b:m:a:" opt; do
+INPUT=2
+while getopts "l:b:m:i:" opt; do
     case $opt in
         l)
             LANG=$OPTARG
@@ -22,8 +22,8 @@ while getopts "l:b:m:a:" opt; do
         m)
             MAX_ALLOC_SIZE=$OPTARG
             ;;
-        a)
-            ARG=$OPTARG
+        i)
+            INPUT=$OPTARG
             ;;
     esac
 done
@@ -50,6 +50,6 @@ fi
 
 rm $FULL_LOC.c
 
-echo $ARG | ./$EXECUTABLE 2>&1
+echo $INPUT | ./$EXECUTABLE 2>&1
 
 rm $EXECUTABLE
