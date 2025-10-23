@@ -152,3 +152,5 @@ void print_stella_stats() {
   printf("Total allocated fields in Stella objects: %'d fields\n", total_allocated_fields);
   #endif
 }
+
+const size_t STELLA_MAX_ALLOC_SIZE = 512;

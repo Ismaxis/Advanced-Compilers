@@ -18,6 +18,7 @@ struct GCStats {
 }
 
 pub struct GarbageCollector {
+    max_alloc_size: usize,
     roots: Vec<StellaVarOrField>,
     stats: GCStats,
 
@@ -27,17 +28,15 @@ pub struct GarbageCollector {
 }
 
 impl GarbageCollector {
-    const MAX_ALLOC_SIZE: usize = 320 * 2;
-    pub(crate) const SPACE_SIZE: usize = Self::MAX_ALLOC_SIZE / 2;
-
-    pub fn new() -> Self {
-        let ptr = unsafe { std::alloc::System.alloc(Self::heap_layout()) };
+    pub fn new(max_alloc_size: usize) -> Self {
+        let ptr = unsafe { std::alloc::System.alloc(Self::heap_layout(max_alloc_size)) };
         log::info!("heap start: {:p}", ptr);
         GarbageCollector {
+            max_alloc_size,
             roots: Vec::new(),
             stats: GCStats::default(),
             from_space: ptr,
-            to_space: unsafe { ptr.offset(Self::SPACE_SIZE as isize) },
+            to_space: unsafe { ptr.offset(Self::space_size(max_alloc_size) as isize) },
             next: ptr,
         }
     }
@@ -48,11 +47,19 @@ impl GarbageCollector {
         } else {
             self.to_space
         };
-        unsafe { std::alloc::System.dealloc(smallest, Self::heap_layout()) };
+        unsafe { std::alloc::System.dealloc(smallest, Self::heap_layout(self.max_alloc_size)) };
     }
 
-    fn heap_layout() -> Layout {
-        Layout::array::<usize>(Self::MAX_ALLOC_SIZE).unwrap()
+    pub fn max_alloc_size(&self) -> usize {
+        return self.max_alloc_size;
+    }
+
+    pub(crate) fn space_size(max_alloc_size: usize) -> usize {
+        max_alloc_size / 2
+    }
+
+    fn heap_layout(max_alloc_size: usize) -> Layout {
+        Layout::array::<usize>(max_alloc_size).unwrap()
     }
 
     pub fn alloc(&mut self, size_in_bytes: usize) -> *mut StellaObject {
@@ -63,7 +70,9 @@ impl GarbageCollector {
         self.stats.total_allocations += 1;
         self.stats.total_allocated_memory += allocated_memory;
 
-        if self.next.addr() + allocated_memory > self.from_space.addr() + Self::SPACE_SIZE {
+        if self.next.addr() + allocated_memory
+            > self.from_space.addr() + Self::space_size(self.max_alloc_size)
+        {
             if let None = self.collect() {
                 log::error!("out of memory {}", self.stats.gc_cycles);
                 panic!("out of memory");
@@ -115,7 +124,7 @@ impl GarbageCollector {
         swap(&mut self.from_space, &mut self.to_space);
 
         unsafe {
-            std::ptr::write_bytes(self.to_space, 0, Self::SPACE_SIZE);
+            std::ptr::write_bytes(self.to_space, 0, Self::space_size(self.max_alloc_size));
         }
 
         log::info!("collection ended");
@@ -183,7 +192,7 @@ impl GarbageCollector {
             if log::log_enabled!(log::Level::Trace) {
                 log::trace!("== BEFORE ==");
                 print_memory_chunks(self.from_space as *const u8, unsafe {
-                    (self.from_space as *const u8).add(Self::SPACE_SIZE)
+                    (self.from_space as *const u8).add(Self::space_size(self.max_alloc_size))
                 });
                 log::trace!("");
                 print_memory_chunks(self.to_space as *const u8, self.next as *const u8);
@@ -210,7 +219,7 @@ impl GarbageCollector {
             if log::log_enabled!(log::Level::Trace) {
                 log::trace!("== AFTER ==");
                 print_memory_chunks(self.from_space as *const u8, unsafe {
-                    (self.from_space as *const u8).add(Self::SPACE_SIZE)
+                    (self.from_space as *const u8).add(Self::space_size(self.max_alloc_size))
                 });
                 log::trace!("");
                 print_memory_chunks(self.to_space as *const u8, self.next as *const u8);
@@ -290,17 +299,17 @@ impl GarbageCollector {
     }
 
     fn points_to_fromspace<T>(&self, p: *mut T) -> bool {
-        Self::points_to_space(p, self.from_space)
+        self.points_to_space(p, self.from_space)
     }
 
     fn points_to_tospace<T>(&self, p: *mut T) -> bool {
-        Self::points_to_space(p, self.to_space)
+        self.points_to_space(p, self.to_space)
     }
 
-    fn points_to_space<T, U>(p: *mut T, space_start: *mut U) -> bool {
+    fn points_to_space<T, U>(&self, p: *mut T, space_start: *mut U) -> bool {
         let start_address = space_start.addr();
         let pointer_address = p.addr();
-        let end_address = space_start.addr() + Self::SPACE_SIZE;
+        let end_address = space_start.addr() + Self::space_size(self.max_alloc_size);
         start_address <= pointer_address && pointer_address < end_address
     }
 }
@@ -311,8 +320,12 @@ mod tests {
 
     #[test]
     fn test_gc_state_from_hw1() {
-        env_logger::builder().is_test(true).filter_level(log::LevelFilter::Trace).init();
-        let mut gc = crate::get_gc();
+        env_logger::builder()
+            .is_test(true)
+            .filter_level(log::LevelFilter::Trace)
+            .init();
+
+        let mut gc = GarbageCollector::new(320 * 2);
         let specs = vec![
             // 1
             TestObjectSpec {
@@ -365,7 +378,7 @@ mod tests {
         gc.push_root(StellaVarOrField::from_reference(unsafe {
             objs.as_mut_ptr().add(3)
         }));
-        print_state();
+        assert_eq!((gc.next.addr() - gc.from_space.addr()) / 32, 9);
         _ = setup_test_objects(
             &mut gc,
             &vec![TestObjectSpec {
@@ -373,10 +386,7 @@ mod tests {
                 field_refs: vec![None, None, None],
             }],
         );
-        println!(
-            "================================================================================="
-        );
-        print_state();
+        assert_eq!((gc.next.addr() - gc.from_space.addr()) / 32, 10);
         _ = setup_test_objects(
             &mut gc,
             &vec![TestObjectSpec {
@@ -384,10 +394,8 @@ mod tests {
                 field_refs: vec![None, None, None],
             }],
         );
-        println!(
-            "================================================================================="
-        );
-        print_state();
+        gc.print_stats();
+        assert_eq!((gc.next.addr() - gc.from_space.addr()) / 32, 6 + 1);
     }
 
     /// Describe a Stella object for test setup
@@ -405,7 +413,7 @@ mod tests {
     ) -> Vec<*mut StellaObject> {
         let mut ptrs = Vec::with_capacity(specs.len());
 
-        for (i, spec) in specs.iter().enumerate()  {
+        for (i, spec) in specs.iter().enumerate() {
             let obj_ptr = gc.alloc(StellaObject::get_layout(spec.field_count).size());
             unsafe {
                 // (*obj_ptr).init_fields(spec.field_count);

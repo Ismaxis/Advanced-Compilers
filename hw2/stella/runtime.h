@@ -105,4 +105,6 @@ extern const int FIELD_COUNT_MASK;
 /** The bitmask for the Stella object tag. */
 extern const int TAG_MASK;
 
+extern const size_t STELLA_MAX_ALLOC_SIZE;
+
 #endif

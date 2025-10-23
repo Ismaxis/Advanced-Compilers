@@ -2,6 +2,13 @@ use std::ffi::{c_int, c_void};
 
 use crate::types::*;
 
+#[cfg(not(test))]
+unsafe extern "C" {
+    pub unsafe static STELLA_MAX_ALLOC_SIZE: usize;
+}
+#[cfg(test)]
+pub static mut STELLA_MAX_ALLOC_SIZE: usize = 1024;
+
 #[no_mangle]
 pub extern "C" fn gc_alloc(size_in_bytes: usize) -> *mut c_void {
     return crate::alloc(size_in_bytes) as *mut c_void;

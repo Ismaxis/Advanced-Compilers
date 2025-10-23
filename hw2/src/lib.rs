@@ -25,7 +25,7 @@ static mut GC_INSTANCE: Option<gc::GarbageCollector> = None;
 
 pub fn init_gc() {
     unsafe {
-        GC_INSTANCE = Some(gc::GarbageCollector::new());
+        GC_INSTANCE = Some(gc::GarbageCollector::new(crate::ffi::STELLA_MAX_ALLOC_SIZE));
     }
 }
 
@@ -99,7 +99,10 @@ pub(crate) fn print_state() {
 
     gc.print_roots();
 
-    let raw_end = unsafe { gc.from_space.add(gc::GarbageCollector::SPACE_SIZE) };
+    let raw_end = unsafe {
+        gc.from_space
+            .add(gc::GarbageCollector::space_size(gc.max_alloc_size()))
+    };
     println!("Raw memory (heap..free) in 8-byte chunks:");
     print_memory_chunks(gc.from_space, raw_end);
 
