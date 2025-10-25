@@ -10,7 +10,7 @@ struct GCStats {
     pub total_allocations: usize,
     pub total_allocated_memory: usize,
     pub gc_cycles: usize,
-    pub _max_residency: usize,
+    pub max_residency: usize,
     pub max_residency_memory: usize,
     pub read_count: usize,
     pub write_count: usize,
@@ -79,11 +79,6 @@ impl GarbageCollector {
             if let None = self.collect() {
                 self.out_of_memory();
             }
-
-            self.stats.max_residency_memory = std::cmp::max(
-                self.stats.max_residency_memory,
-                self.next.addr() - self.from_space.addr(),
-            );
         }
 
         // second check, if not enough was freed
@@ -153,6 +148,7 @@ impl GarbageCollector {
 
         swap(&mut self.from_space, &mut self.to_space);
 
+        // TODO:
         unsafe {
             std::ptr::write_bytes(self.to_space, 0, Self::space_size(self.allocated_memory()));
         }
@@ -162,7 +158,31 @@ impl GarbageCollector {
             print_state();
         }
 
+        self.update_stats();
+
         Some(())
+    }
+
+    fn update_stats(&mut self) {
+        let mut obj_count = 0;
+        let mut ptr = self.to_space;
+        while ptr.addr() < self.next.addr() {
+            let block = ControlBlock::<StellaObject>::from_ptr(ptr);
+            let object = block.get_value();
+            let field_count = object.get_fields_count();
+            let control_block_size = ControlBlock::<StellaObject>::get_layout(
+                StellaObject::get_layout(field_count as usize),
+            )
+            .size();
+            ptr = unsafe { ptr.add(control_block_size) };
+            obj_count += 1;
+        }
+        self.stats.max_residency = std::cmp::max(self.stats.max_residency, obj_count);
+
+        self.stats.max_residency_memory = std::cmp::max(
+            self.stats.max_residency_memory,
+            self.next.addr() - self.to_space.addr(),
+        );
     }
 
     fn forward(&mut self, p: &mut ControlBlock<StellaObject>) -> Option<StellaReference> {
@@ -317,7 +337,7 @@ impl GarbageCollector {
             self.stats.total_allocated_memory,
             self.stats.total_allocations,
             self.stats.max_residency_memory,
-            "TODO", // self.stats.max_residency,
+            self.stats.max_residency,
             self.stats.read_count,
             self.stats.write_count
         );
