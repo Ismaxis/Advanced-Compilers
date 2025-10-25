@@ -1,72 +1,24 @@
-use std::{
-    alloc::Layout,
-    ops::{Deref, DerefMut},
-};
-
-use c_enum::c_enum;
-
-c_enum! {
-    #[derive(Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum StellaTag: i32 {
-        TAG_ZERO,
-        TAG_SUCC,
-        TAG_FALSE,
-        TAG_TRUE,
-        TAG_FN,
-        TAG_REF,
-        TAG_UNIT,
-        TAG_TUPLE,
-        TAG_INL,
-        TAG_INR,
-        TAG_EMPTY,
-        TAG_CONS,
-    }
-}
-
-pub type StellaReference = &'static StellaObject;
-
-#[derive(PartialEq, Eq)]
-pub struct StellaVarOrField(pub &'static mut StellaReference);
-
-impl StellaVarOrField {
-    pub fn write(&mut self, ptr: StellaReference) {
-        *self.0 = ptr;
-    }
-
-    pub fn from_ptr_to_ref(object: *const StellaReference) -> Self {
-        let ptr_to_ref = unsafe {
-            std::mem::transmute::<*const StellaReference, &'static mut StellaReference>(object)
-        };
-        Self(ptr_to_ref)
-    }
-
-    pub fn from_ptr_to_ptr(object: *mut *mut StellaObject) -> Self {
-        let ptr_to_ref = unsafe {
-            std::mem::transmute::<*mut *mut StellaObject, &'static mut StellaReference>(object)
-        };
-        Self(ptr_to_ref)
-    }
-}
-
-impl Deref for StellaVarOrField {
-    type Target = StellaReference;
-
-    fn deref(&self) -> &Self::Target {
-        &*self.0
-    }
-}
-
-impl DerefMut for StellaVarOrField {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut *self.0
-    }
-}
+use std::alloc::Layout;
 
 #[repr(C)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub struct StellaObject {
     pub header: i32,
     pub fields: StellaReference,
+}
+
+pub type StellaTag = i32;
+
+pub type StellaReference = &'static mut StellaObject;
+
+pub type StellaVarOrField = &'static mut StellaReference;
+
+fn from_ptr_to_ref(object: *const StellaReference) -> StellaVarOrField {
+    unsafe { std::mem::transmute::<*const StellaReference, &'static mut StellaReference>(object) }
+}
+
+pub(crate) fn ptr_ptr_to_ref_ref(object: *mut *mut StellaObject) -> StellaVarOrField {
+    unsafe { std::mem::transmute::<*mut *mut StellaObject, &'static mut StellaReference>(object) }
 }
 
 impl StellaObject {
@@ -74,34 +26,34 @@ impl StellaObject {
     const TAG_MASK: i32 = (1 << 4) - (1 << 0);
 
     pub fn get_tag(&self) -> StellaTag {
-        StellaTag(self.header & Self::TAG_MASK)
+        self.header & Self::TAG_MASK
     }
 
     pub fn get_fields_count(&self) -> i32 {
         (self.header & Self::FIELD_COUNT_MASK) >> 4
     }
 
-    pub fn set_header(&self, header: i32) {
-        let header_ptr = self.as_ptr() as *mut i32;
+    pub fn set_header(&mut self, header: i32) {
+        let header_ptr = std::ptr::addr_of_mut!(self.header);
         unsafe { *header_ptr = header };
     }
 
     pub fn get_field(&self, i: usize) -> StellaVarOrField {
-        StellaVarOrField::from_ptr_to_ref(unsafe { std::ptr::addr_of!(self.fields).add(i) })
+        from_ptr_to_ref(unsafe { std::ptr::addr_of!(self.fields).add(i) })
     }
 
-    pub fn as_ptr(&self) -> *mut StellaObject {
-        unsafe { std::mem::transmute::<&StellaObject, *mut StellaObject>(self) }
+    pub fn as_ptr(&self) -> *mut Self {
+        unsafe { std::mem::transmute::<&Self, *mut Self>(self) }
     }
 
     pub fn get_layout(fields_count: usize) -> Layout {
         let header = Layout::new::<i32>();
-        let fields = Layout::array::<*mut StellaObject>(fields_count).unwrap();
+        let fields = Layout::array::<*mut Self>(fields_count).unwrap();
         header.extend(fields).unwrap().0
     }
 
-    pub fn from_ptr(ptr: *mut u8) -> *mut StellaObject {
-        ptr as *mut StellaObject
+    pub fn from_ptr(ptr: *mut u8) -> *mut Self {
+        ptr as *mut Self
     }
 
     pub fn init_fields(&mut self, field_count: usize) {
@@ -109,8 +61,8 @@ impl StellaObject {
         self.header |= ((field_count as i32) << 4) & Self::FIELD_COUNT_MASK;
     }
 
-    pub unsafe fn set_field(&mut self, index: usize, value: *mut StellaObject) {
-        let fields_ptr = std::ptr::addr_of!(self.fields) as *mut *mut StellaObject;
+    pub unsafe fn set_field(&mut self, index: usize, value: *mut Self) {
+        let fields_ptr = std::ptr::addr_of!(self.fields) as *mut *mut Self;
         *fields_ptr.add(index) = value;
     }
 }

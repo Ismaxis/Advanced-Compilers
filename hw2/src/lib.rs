@@ -81,13 +81,13 @@ pub(crate) fn write_barrier(
 #[no_mangle]
 pub(crate) fn push_root(object: *mut *mut StellaObject) {
     log::debug!("push_root: object={:p} to={:p}", object, unsafe { *object });
-    get_gc().push_root(StellaVarOrField::from_ptr_to_ptr(object));
+    get_gc().push_root(ptr_ptr_to_ref_ref(object));
 }
 
 #[no_mangle]
 pub(crate) fn pop_root(object: *mut *mut StellaObject) {
     log::debug!("pop_root: object={:p} to={:p}", object, unsafe { *object });
-    get_gc().pop_root(StellaVarOrField::from_ptr_to_ptr(object));
+    get_gc().pop_root(ptr_ptr_to_ref_ref(object));
 }
 
 // === STATS API ===
@@ -132,7 +132,7 @@ pub(crate) fn print_roots() {
 
 fn print_heap_objects(mut ptr: *mut u8, end: *mut u8) {
     while ptr < end {
-        let block = ptr as *const ControlBlock;
+        let block = ptr as *const ControlBlock<StellaObject>;
         let value = unsafe { &(*block).value };
         let field_count = value.get_fields_count();
 
@@ -142,7 +142,7 @@ fn print_heap_objects(mut ptr: *mut u8, end: *mut u8) {
         println!();
 
         let obj_layout = StellaObject::get_layout(field_count as usize);
-        let block_layout = ControlBlock::header_layout();
+        let block_layout = ControlBlock::<StellaObject>::header_layout();
         let obj_size = block_layout.size() + obj_layout.size();
         ptr = unsafe { ptr.add(obj_size) };
     }

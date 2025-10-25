@@ -67,7 +67,7 @@ impl GarbageCollector {
 
     pub fn alloc(&mut self, size_in_bytes: usize) -> *mut StellaObject {
         log::debug!("alloc {}", size_in_bytes);
-        let control_block_header_size = ControlBlock::header_layout().size();
+        let control_block_header_size = ControlBlock::<StellaObject>::header_layout().size();
         let requested_memory_size = control_block_header_size + size_in_bytes;
 
         self.stats.total_allocations += 1;
@@ -93,7 +93,7 @@ impl GarbageCollector {
             self.out_of_memory();
         }
 
-        let block = ControlBlock::from_ptr(self.next);
+        let block = ControlBlock::<StellaObject>::from_ptr(self.next);
 
         let result = block.get_value().as_ptr();
         self.next = unsafe { self.next.add(requested_memory_size) };
@@ -117,7 +117,7 @@ impl GarbageCollector {
 
         log::trace!("scanning roots [{}]", self.roots.len());
         for i in 0..self.roots.len() {
-            log::trace!("scan root {:p} -> {:p}", self.roots[i].0, *self.roots[i]);
+            log::trace!("scan root {:p} -> {:p}", self.roots[i], *self.roots[i]);
             if !self.is_managed_ptr((*self.roots[i]).as_ptr()) {
                 log::warn!(
                     "skipping root that points to not managed memory {:p}",
@@ -126,22 +126,29 @@ impl GarbageCollector {
                 continue;
             }
 
-            let ptr = self.forward(ControlBlock::from_var_of_field(&self.roots[i]))?;
-            self.roots[i].write(ptr);
-            log::trace!("root scanned {:p} -> {:p}", self.roots[i].0, *self.roots[i]);
+            let ptr = self.forward(ControlBlock::<StellaObject>::from_var_of_field(
+                &self.roots[i],
+            ))?;
+            *self.roots[i] = ptr;
+            log::trace!("root scanned {:p} -> {:p}", self.roots[i], *self.roots[i]);
             log::trace!("");
         }
 
         while scan.addr() < self.next.addr() {
-            let block = ControlBlock::from_ptr(scan);
+            let block = ControlBlock::<StellaObject>::from_ptr(scan);
             let object = block.get_value();
             let field_count = object.get_fields_count();
 
             for field_idx in 0..field_count as usize {
                 let field = &mut object.get_field(field_idx);
-                field.write(self.forward(ControlBlock::from_var_of_field(field))?);
+                **field = self.forward(ControlBlock::<StellaObject>::from_var_of_field(field))?;
             }
-            scan = unsafe { scan.add(block.get_size()) }
+
+            let control_block_size = ControlBlock::<StellaObject>::get_layout(
+                StellaObject::get_layout(object.get_fields_count() as usize),
+            )
+            .size();
+            scan = unsafe { scan.add(control_block_size) }
         }
 
         swap(&mut self.from_space, &mut self.to_space);
@@ -158,7 +165,7 @@ impl GarbageCollector {
         Some(())
     }
 
-    fn forward(&mut self, p: &mut ControlBlock) -> Option<StellaReference> {
+    fn forward(&mut self, p: &mut ControlBlock<StellaObject>) -> Option<StellaReference> {
         log::trace!("forward block {:p}", p.as_ptr());
         if !self.points_to_fromspace(p.as_ptr()) {
             log::trace!("not from fromspace {:p}", p.as_ptr());
@@ -189,12 +196,16 @@ impl GarbageCollector {
         return Some(*f1);
     }
 
-    fn chase(&mut self, mut p: &mut ControlBlock) -> Option<()> {
+    fn chase(&mut self, mut p: &mut ControlBlock<StellaObject>) -> Option<()> {
         log::trace!("chase iter {:p}", p.as_ptr());
         loop {
             log::trace!("chase moving to {:p}", self.next);
-            let q = ControlBlock::from_ptr(self.next);
-            self.next = unsafe { self.next.add(p.get_size()) };
+            let q = ControlBlock::<StellaObject>::from_ptr(self.next);
+            let control_block_size = ControlBlock::<StellaObject>::get_layout(
+                StellaObject::get_layout(p.get_value().get_fields_count() as usize),
+            )
+            .size();
+            self.next = unsafe { self.next.add(control_block_size) };
             log::trace!("new next {:p}", self.next);
             if !self.is_managed_ptr(self.next) {
                 log::warn!(
@@ -210,7 +221,7 @@ impl GarbageCollector {
                 self.to_space.addr() + Self::space_size(self.allocated_memory()) - self.next.addr()
             );
 
-            let mut r: Option<&mut ControlBlock> = None;
+            let mut r: Option<&mut ControlBlock<StellaObject>> = None;
             let p_object = p.get_value();
             let q_object = q.get_value();
             let field_count = p_object.get_fields_count();
@@ -236,11 +247,11 @@ impl GarbageCollector {
                 if self.points_to_fromspace((*qfi).as_ptr())
                     && !self.points_to_tospace((*(*qfi).get_field(0)).as_ptr())
                 {
-                    r = Some(ControlBlock::from_var_of_field(qfi));
+                    r = Some(ControlBlock::<StellaObject>::from_var_of_field(qfi));
                 }
             }
 
-            p_object.get_field(0).write(q_object);
+            *p_object.get_field(0) = q_object;
 
             if log::log_enabled!(log::Level::Trace) {
                 log::trace!("== AFTER ==");
@@ -400,9 +411,7 @@ mod tests {
         ];
 
         let mut objs = setup_test_objects(&mut gc, &specs);
-        gc.push_root(StellaVarOrField::from_ptr_to_ptr(unsafe {
-            objs.as_mut_ptr().add(3)
-        }));
+        gc.push_root(ptr_ptr_to_ref_ref(unsafe { objs.as_mut_ptr().add(3) }));
         assert_eq!((gc.next.addr() - gc.from_space.addr()) / 32, 9);
         _ = setup_test_objects(
             &mut gc,
