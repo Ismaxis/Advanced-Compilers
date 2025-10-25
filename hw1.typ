@@ -12,11 +12,11 @@
 #let ptr(x) = underline(str(x))
 #let nil = ptr("●");
 
-#let object(content, color: white) = table.cell(colspan: content.len(), inset: (x: 1.1pt))[ #table(
+#let object(content, color: white) = table.cell(colspan: content.len(), inset: (x: 1.1pt), table(
   columns: content.len(),
   fill: color,
-  ..content.map(c => [#c])
-)];
+  ..content.map(c => c)
+));
 
 #let ids = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27);
 
@@ -29,7 +29,7 @@
     [Корни],
     table(
       columns: 4,
-      [#val(3)], [#ptr(10)], [#val(2)], [#val(9)],
+      val(3), ptr(10), val(2), val(9),
     ),
 
     [Куча],
@@ -350,11 +350,11 @@
   #let from_space = range(1, calc.floor(total_memory / 2) + 1)
   #let to_space = range(calc.floor(total_memory / 2) + 1, total_memory + 1)
 
-  #let object(content, color: white) = table.cell(colspan: content.len(), inset: (x: 1.1pt))[ #table(
+  #let object(content, color: white) = table.cell(colspan: content.len(), inset: (x: 1.1pt), table(
     columns: content.len(),
     fill: color,
     ..content.map(c => [#c])
-  )];
+  ));
 
   #let arrow(text) = table(
     stroke: none,
