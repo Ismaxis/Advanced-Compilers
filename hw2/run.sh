@@ -3,16 +3,15 @@
 set -e
 
 TEST_NAME=factorial
-FULL_LOC=$TEST_NAME
-
-docker run --rm -i fizruk/stella compile < tests/$TEST_NAME.st > $TEST_NAME.c
-
 LANG="rust"
 BUILD=debug
 MAX_ALLOC_SIZE=1024
 INPUT=2
-while getopts "l:b:m:i:" opt; do
+while getopts "t:l:b:m:i:" opt; do
     case $opt in
+        t)
+            TEST_NAME=$OPTARG
+            ;;
         l)
             LANG=$OPTARG
             ;;
@@ -27,6 +26,9 @@ while getopts "l:b:m:i:" opt; do
             ;;
     esac
 done
+FULL_LOC=$TEST_NAME
+
+docker run --rm -i fizruk/stella compile < tests/$TEST_NAME.st > $TEST_NAME.c
 
 echo "[$BUILD]" $LANG $MAX_ALLOC_SIZE
 
@@ -35,6 +37,7 @@ EXECUTABLE=build/$FULL_LOC-$LANG
 if [[ $LANG == "C" ]]; then
     gcc -std=c11 $FULL_LOC.c stella/runtime.c stella/gc.c -o $EXECUTABLE
 elif [[ $LANG == "rust" ]]; then
+    export RUST_BACKTRACE=1 
     if [[ $BUILD == "debug" ]]; then
         cargo build 2> build/cargo.log 1> build/cargo.log
     else 
@@ -48,8 +51,8 @@ elif [[ $LANG == "rust" ]]; then
     export RUST_LOG=error
 fi
 
-rm $FULL_LOC.c
+# rm $FULL_LOC.c
 
 echo $INPUT | ./$EXECUTABLE 2>&1
 
-rm $EXECUTABLE
+# rm $EXECUTABLE

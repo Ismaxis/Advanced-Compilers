@@ -1,5 +1,7 @@
 use std::alloc::Layout;
 
+use c_enum::c_enum;
+
 #[repr(C)]
 #[derive(PartialEq, Eq)]
 pub struct StellaObject {
@@ -7,7 +9,23 @@ pub struct StellaObject {
     pub fields: StellaReference,
 }
 
-pub type StellaTag = i32;
+c_enum! {
+    #[derive(Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum StellaTag: i32 {
+        TAG_ZERO,
+        TAG_SUCC,
+        TAG_FALSE,
+        TAG_TRUE,
+        TAG_FN,
+        TAG_REF,
+        TAG_UNIT,
+        TAG_TUPLE,
+        TAG_INL,
+        TAG_INR,
+        TAG_EMPTY,
+        TAG_CONS,
+    }
+}
 
 pub type StellaReference = &'static mut StellaObject;
 
@@ -26,7 +44,7 @@ impl StellaObject {
     const TAG_MASK: i32 = (1 << 4) - (1 << 0);
 
     pub fn get_tag(&self) -> StellaTag {
-        self.header & Self::TAG_MASK
+        StellaTag(self.header & Self::TAG_MASK)
     }
 
     pub fn get_fields_count(&self) -> i32 {

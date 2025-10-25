@@ -162,7 +162,7 @@ pub(crate) fn print_memory_chunks(mut raw_ptr: *const u8, raw_end: *const u8) {
     }
 }
 
-fn print_object_info(value: &StellaObject) {
+pub(crate) fn print_object_info(value: &StellaObject) {
     let gc = get_gc();
     let field_count = value.get_fields_count();
     print!(" | @{:p} {:?} {}", value, value.get_tag(), field_count);

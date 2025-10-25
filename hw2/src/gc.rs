@@ -136,7 +136,10 @@ impl GarbageCollector {
 
             for field_idx in 0..field_count as usize {
                 let field = &mut object.get_field(field_idx);
-                **field = self.forward(ControlBlock::<StellaObject>::from_var_of_field(field))?;
+                if self.is_managed_ptr(**field) {
+                    **field =
+                        self.forward(ControlBlock::<StellaObject>::from_var_of_field(field))?;
+                }
             }
 
             let control_block_size = ControlBlock::<StellaObject>::get_layout(
@@ -148,7 +151,7 @@ impl GarbageCollector {
 
         swap(&mut self.from_space, &mut self.to_space);
 
-        // TODO:
+        // TODO: remove
         unsafe {
             std::ptr::write_bytes(self.to_space, 0, Self::space_size(self.allocated_memory()));
         }
@@ -181,7 +184,7 @@ impl GarbageCollector {
 
         self.stats.max_residency_memory = std::cmp::max(
             self.stats.max_residency_memory,
-            self.next.addr() - self.to_space.addr(),
+            (self.next.addr() as isize - self.to_space.addr() as isize) as usize,
         );
     }
 
