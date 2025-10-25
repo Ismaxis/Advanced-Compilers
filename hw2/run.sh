@@ -5,7 +5,7 @@ set -e
 TEST_NAME=factorial
 FULL_LOC=$TEST_NAME
 
-docker run -i fizruk/stella compile < tests/$TEST_NAME.st > $TEST_NAME.c
+docker run --rm -i fizruk/stella compile < tests/$TEST_NAME.st > $TEST_NAME.c
 
 LANG="rust"
 BUILD=debug

@@ -25,20 +25,26 @@ c_enum! {
 
 pub type StellaReference = &'static StellaObject;
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
-pub struct StellaVarOrField(pub *mut StellaReference);
+#[derive(PartialEq, Eq)]
+pub struct StellaVarOrField(pub &'static mut StellaReference);
 
 impl StellaVarOrField {
     pub fn write(&mut self, ptr: StellaReference) {
-        unsafe {
-            *self.0 = ptr;
-        }
+        *self.0 = ptr;
     }
 
-    pub fn from_reference(object: *mut *mut StellaObject) -> StellaVarOrField {
-        let ptr_to_ref =
-            unsafe { std::mem::transmute::<*mut *mut StellaObject, *mut StellaReference>(object) };
-        StellaVarOrField(ptr_to_ref)
+    pub fn from_ptr_to_ref(object: *const StellaReference) -> Self {
+        let ptr_to_ref = unsafe {
+            std::mem::transmute::<*const StellaReference, &'static mut StellaReference>(object)
+        };
+        Self(ptr_to_ref)
+    }
+
+    pub fn from_ptr_to_ptr(object: *mut *mut StellaObject) -> Self {
+        let ptr_to_ref = unsafe {
+            std::mem::transmute::<*mut *mut StellaObject, &'static mut StellaReference>(object)
+        };
+        Self(ptr_to_ref)
     }
 }
 
@@ -46,18 +52,18 @@ impl Deref for StellaVarOrField {
     type Target = StellaReference;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { &*self.0 }
+        &*self.0
     }
 }
 
 impl DerefMut for StellaVarOrField {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *self.0 }
+        &mut *self.0
     }
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct StellaObject {
     pub header: i32,
     pub fields: StellaReference,
@@ -81,7 +87,7 @@ impl StellaObject {
     }
 
     pub fn get_field(&self, i: usize) -> StellaVarOrField {
-        StellaVarOrField(unsafe { std::ptr::addr_of!(self.fields).add(i) } as *mut StellaReference)
+        StellaVarOrField::from_ptr_to_ref(unsafe { std::ptr::addr_of!(self.fields).add(i) })
     }
 
     pub fn as_ptr(&self) -> *mut StellaObject {

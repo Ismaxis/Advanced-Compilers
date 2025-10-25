@@ -6,7 +6,7 @@ type ControlBlockHeader = ();
 
 #[repr(C)]
 pub struct ControlBlock {
-    pub some_header: ControlBlockHeader, // TODO:
+    pub some_header: ControlBlockHeader,
     pub value: StellaObject,
 }
 
@@ -23,8 +23,8 @@ impl ControlBlock {
         Self::ptr_to_ref(value as *mut ControlBlock)
     }
 
-    pub fn from_var_of_field(root: StellaVarOrField) -> &'static mut Self {
-        Self::from_ptr(Self::from_value_ptr(*root))
+    pub fn from_var_of_field(root: &StellaVarOrField) -> &'static mut Self {
+        Self::from_ptr(Self::from_value_ptr(**root))
     }
 
     fn from_value_ptr(value: *const StellaObject) -> *mut Self {

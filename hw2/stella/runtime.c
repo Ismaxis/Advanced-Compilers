@@ -156,5 +156,5 @@ void print_stella_stats() {
 #ifdef MAX_ALLOC_SIZE
 const size_t STELLA_MAX_ALLOC_SIZE = MAX_ALLOC_SIZE;
 #else
-const size_t STELLA_MAX_ALLOC_SIZE = (30 * 8) * 2;
+const size_t STELLA_MAX_ALLOC_SIZE = 60 * 8;
 #endif

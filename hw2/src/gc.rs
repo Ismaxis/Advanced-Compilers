@@ -29,14 +29,17 @@ pub struct GarbageCollector {
 
 impl GarbageCollector {
     pub fn new(max_alloc_size: usize) -> Self {
-        let ptr = unsafe { std::alloc::System.alloc(Self::heap_layout(max_alloc_size)) };
-        log::info!("heap start: {:p}", ptr);
+        let allocated_memory = max_alloc_size * 2;
+        let ptr = unsafe { std::alloc::System.alloc(Self::heap_layout(allocated_memory)) };
+        log::info!("heap [{:p} : {:p}]", ptr, unsafe {
+            ptr.offset(Self::space_size(allocated_memory) as isize)
+        });
         GarbageCollector {
-            max_alloc_size,
+            max_alloc_size: max_alloc_size,
             roots: Vec::new(),
             stats: GCStats::default(),
             from_space: ptr,
-            to_space: unsafe { ptr.offset(Self::space_size(max_alloc_size) as isize) },
+            to_space: unsafe { ptr.offset(Self::space_size(allocated_memory) as isize) },
             next: ptr,
         }
     }
@@ -47,19 +50,19 @@ impl GarbageCollector {
         } else {
             self.to_space
         };
-        unsafe { std::alloc::System.dealloc(smallest, Self::heap_layout(self.max_alloc_size)) };
+        unsafe { std::alloc::System.dealloc(smallest, Self::heap_layout(self.allocated_memory())) };
     }
 
-    pub fn max_alloc_size(&self) -> usize {
-        return self.max_alloc_size;
+    pub fn allocated_memory(&self) -> usize {
+        self.max_alloc_size * 2
     }
 
-    pub(crate) fn space_size(max_alloc_size: usize) -> usize {
-        max_alloc_size / 2
+    pub(crate) fn space_size(allocated_memory: usize) -> usize {
+        allocated_memory / 2
     }
 
-    fn heap_layout(max_alloc_size: usize) -> Layout {
-        Layout::array::<usize>(max_alloc_size).unwrap()
+    fn heap_layout(allocated_memory: usize) -> Layout {
+        Layout::array::<u8>(allocated_memory).unwrap()
     }
 
     pub fn alloc(&mut self, size_in_bytes: usize) -> *mut StellaObject {
@@ -71,7 +74,7 @@ impl GarbageCollector {
         self.stats.total_allocated_memory += requested_memory_size;
 
         if self.next.addr() + requested_memory_size
-            > self.from_space.addr() + Self::space_size(self.max_alloc_size)
+            > self.from_space.addr() + Self::space_size(self.allocated_memory())
         {
             if let None = self.collect() {
                 self.out_of_memory();
@@ -85,7 +88,7 @@ impl GarbageCollector {
 
         // second check, if not enough was freed
         if self.next.addr() + requested_memory_size
-            > self.from_space.addr() + Self::space_size(self.max_alloc_size)
+            > self.from_space.addr() + Self::space_size(self.allocated_memory())
         {
             self.out_of_memory();
         }
@@ -114,14 +117,18 @@ impl GarbageCollector {
 
         log::trace!("scanning roots [{}]", self.roots.len());
         for i in 0..self.roots.len() {
-            let mut r = self.roots[i];
-            log::trace!("scan root {:p} -> {:p}", r.0, *r);
-            if !self.is_controller_ptr((*r).as_ptr()) {
-                log::trace!("strange root {:p}", *r);
+            log::trace!("scan root {:p} -> {:p}", self.roots[i].0, *self.roots[i]);
+            if !self.is_managed_ptr((*self.roots[i]).as_ptr()) {
+                log::warn!(
+                    "skipping root that points to not managed memory {:p}",
+                    *self.roots[i]
+                );
                 continue;
             }
-            r.write(self.forward(ControlBlock::from_var_of_field(r))?);
-            log::trace!("root scanned {:p} -> {:p}", r.0, *r);
+
+            let ptr = self.forward(ControlBlock::from_var_of_field(&self.roots[i]))?;
+            self.roots[i].write(ptr);
+            log::trace!("root scanned {:p} -> {:p}", self.roots[i].0, *self.roots[i]);
             log::trace!("");
         }
 
@@ -131,7 +138,7 @@ impl GarbageCollector {
             let field_count = object.get_fields_count();
 
             for field_idx in 0..field_count as usize {
-                let mut field = object.get_field(field_idx);
+                let field = &mut object.get_field(field_idx);
                 field.write(self.forward(ControlBlock::from_var_of_field(field))?);
             }
             scan = unsafe { scan.add(block.get_size()) }
@@ -140,7 +147,7 @@ impl GarbageCollector {
         swap(&mut self.from_space, &mut self.to_space);
 
         unsafe {
-            std::ptr::write_bytes(self.to_space, 0, Self::space_size(self.max_alloc_size));
+            std::ptr::write_bytes(self.to_space, 0, Self::space_size(self.allocated_memory()));
         }
 
         log::info!("collection ended");
@@ -176,7 +183,7 @@ impl GarbageCollector {
             f1.as_ptr()
         );
 
-        if self.is_controller_ptr(p.as_ptr()) {
+        if self.is_managed_ptr(p.as_ptr()) {
             self.chase(p)?;
         }
         return Some(*f1);
@@ -189,7 +196,7 @@ impl GarbageCollector {
             let q = ControlBlock::from_ptr(self.next);
             self.next = unsafe { self.next.add(p.get_size()) };
             log::trace!("new next {:p}", self.next);
-            if !self.is_controller_ptr(self.next) {
+            if !self.is_managed_ptr(self.next) {
                 log::warn!(
                     "out of memory {:p}, [{:p}, {:p}]",
                     self.next,
@@ -200,7 +207,7 @@ impl GarbageCollector {
             }
             log::debug!(
                 "space left: {}",
-                self.to_space.addr() + Self::space_size(self.max_alloc_size) - self.next.addr()
+                self.to_space.addr() + Self::space_size(self.allocated_memory()) - self.next.addr()
             );
 
             let mut r: Option<&mut ControlBlock> = None;
@@ -212,7 +219,7 @@ impl GarbageCollector {
             if log::log_enabled!(log::Level::Trace) {
                 log::trace!("== BEFORE ==");
                 print_memory_chunks(self.from_space as *const u8, unsafe {
-                    (self.from_space as *const u8).add(Self::space_size(self.max_alloc_size))
+                    (self.from_space as *const u8).add(Self::space_size(self.allocated_memory()))
                 });
                 log::trace!("");
                 print_memory_chunks(self.to_space as *const u8, self.next as *const u8);
@@ -222,10 +229,9 @@ impl GarbageCollector {
             q_object.set_header(p_object.header);
             // copy stella object fields
             for field_idx in 0..field_count as usize {
-                let mut qfi = q_object.get_field(field_idx);
+                let qfi = &mut q_object.get_field(field_idx);
                 let pfi = p_object.get_field(field_idx);
-                // log::trace!("i: {}, write at {:p}", field_idx, qfi.0);
-                qfi.write(*pfi);
+                **qfi = *pfi;
 
                 if self.points_to_fromspace((*qfi).as_ptr())
                     && !self.points_to_tospace((*(*qfi).get_field(0)).as_ptr())
@@ -239,7 +245,7 @@ impl GarbageCollector {
             if log::log_enabled!(log::Level::Trace) {
                 log::trace!("== AFTER ==");
                 print_memory_chunks(self.from_space as *const u8, unsafe {
-                    (self.from_space as *const u8).add(Self::space_size(self.max_alloc_size))
+                    (self.from_space as *const u8).add(Self::space_size(self.allocated_memory()))
                 });
                 log::trace!("");
                 print_memory_chunks(self.to_space as *const u8, self.next as *const u8);
@@ -259,7 +265,7 @@ impl GarbageCollector {
 
     pub fn pop_root(&mut self, object: StellaVarOrField) {
         if let Some(top) = self.roots.pop() {
-            if top != object {
+            if top.as_ptr().addr() != object.as_ptr().addr() {
                 log::error!(
                     "Tried to pop a root that does not match the top of the stack. top was: {:p}, got: {:p}",
                     *top, *object
@@ -313,7 +319,7 @@ impl GarbageCollector {
         }
     }
 
-    pub(crate) fn is_controller_ptr<T>(&self, p: *mut T) -> bool {
+    pub(crate) fn is_managed_ptr<T>(&self, p: *mut T) -> bool {
         self.points_to_fromspace(p) || self.points_to_tospace(p)
     }
 
@@ -328,7 +334,7 @@ impl GarbageCollector {
     fn points_to_space<T, U>(&self, p: *mut T, space_start: *mut U) -> bool {
         let start_address = space_start.addr();
         let pointer_address = p.addr();
-        let end_address = space_start.addr() + Self::space_size(self.max_alloc_size);
+        let end_address = space_start.addr() + Self::space_size(self.allocated_memory());
         start_address <= pointer_address && pointer_address < end_address
     }
 }
@@ -344,7 +350,7 @@ mod tests {
             .filter_level(log::LevelFilter::Trace)
             .init();
 
-        let mut gc = GarbageCollector::new(320 * 2);
+        let mut gc = GarbageCollector::new(320);
         let specs = vec![
             // 1
             TestObjectSpec {
@@ -394,7 +400,7 @@ mod tests {
         ];
 
         let mut objs = setup_test_objects(&mut gc, &specs);
-        gc.push_root(StellaVarOrField::from_reference(unsafe {
+        gc.push_root(StellaVarOrField::from_ptr_to_ptr(unsafe {
             objs.as_mut_ptr().add(3)
         }));
         assert_eq!((gc.next.addr() - gc.from_space.addr()) / 32, 9);
