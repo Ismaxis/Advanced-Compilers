@@ -2,14 +2,20 @@
 
 Copying Incremental GC
 
+## Dependencies
+
+- docker
+- gcc
+- cargo ([optional](#run-without-cargo))
+
 ## Run
 
 ```shell
-bash run.sh -m <MAX_ALLOC_SIZE> -t <PROGRAM_NAME> -i <PROGRAM_INPUT> 
+bash run.sh -m <MAX_ALLOC_SIZE> -t <TEST_NAME> -i <PROGRAM_INPUT> 
 ```
 
-- default build is **debug**
-- use `-b release` for **release** build
+- `<TEST_NAME>` - filename `*.st` from [tests](tests/)
+- default build is **debug**, use `-b release` for **release** build
 
 ## Tests
 ### Unit
@@ -21,4 +27,11 @@ cargo test
 ### Integration
 ```shell
 bash integration_tests.sh
+```
+
+## Run without `cargo`
+
+Replace `cargo build ...` commands with:
+```
+docker run --rm -v "$PWD":/volume -w /volume rust cargo build ...
 ```
