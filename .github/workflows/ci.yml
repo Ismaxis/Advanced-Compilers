@@ -20,6 +20,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Switch to hw2 directory
+        run: cd hw2
+
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -29,9 +32,12 @@ jobs:
 
       - name: Install dependencies
         run: cargo build --release
+        working-directory: hw2
 
       - name: Run unit tests
         run: cargo test
+        working-directory: hw2
 
       - name: Run integration tests
         run: bash integration_tests.sh
+        working-directory: hw2
