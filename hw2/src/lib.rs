@@ -80,13 +80,13 @@ pub(crate) fn write_barrier(
 
 #[no_mangle]
 pub(crate) fn push_root(object: *mut *mut StellaObject) {
-    log::debug!("push_root: object={:p} to={:p}", object, unsafe { *object });
+    // log::debug!("push_root: object={:p} to={:p}", object, unsafe { *object });
     get_gc().push_root(ptr_ptr_to_ref_ref(object));
 }
 
 #[no_mangle]
 pub(crate) fn pop_root(object: *mut *mut StellaObject) {
-    log::debug!("pop_root: object={:p} to={:p}", object, unsafe { *object });
+    // log::debug!("pop_root: object={:p} to={:p}", object, unsafe { *object });
     get_gc().pop_root(ptr_ptr_to_ref_ref(object));
 }
 
@@ -103,23 +103,7 @@ pub(crate) fn print_state() {
     log::debug!("print_state");
     let gc = get_gc();
 
-    println!(
-        "from_space: {:p} next: {:p} to_space: {:p}",
-        gc.from_space, gc.next, gc.to_space
-    );
-
-    gc.print_roots();
-
-    let raw_end = unsafe {
-        gc.from_space
-            .add(gc::GarbageCollector::space_size(gc.allocated_memory()))
-    };
-    println!("Raw memory (heap..free) in 8-byte chunks:");
-    print_memory_chunks(gc.from_space, raw_end);
-
-    println!("--- GC FromSpace State ---");
-    print_heap_objects(gc.from_space, raw_end);
-    println!("--- End of FromSpace ---");
+    gc.print_state();
 }
 
 #[no_mangle]
@@ -130,13 +114,11 @@ pub(crate) fn print_roots() {
 
 // === HELPERS ===
 
-fn print_heap_objects(mut ptr: *mut u8, end: *mut u8) {
+pub(crate) fn print_heap_objects(mut ptr: *mut u8, end: *mut u8) {
     while ptr < end {
         let block = ptr as *const ControlBlock<StellaObject>;
         let value = unsafe { &(*block).value };
         let field_count = value.get_fields_count();
-
-        print!("@{:p}", ptr);
 
         print_object_info(value);
         println!();
@@ -158,6 +140,7 @@ pub(crate) fn print_memory_chunks(mut raw_ptr: *const u8, raw_end: *const u8) {
                 line.push_str("   ");
             }
         }
+        print!("{}\n", line);
         raw_ptr = unsafe { raw_ptr.add(8) };
     }
 }
@@ -165,7 +148,7 @@ pub(crate) fn print_memory_chunks(mut raw_ptr: *const u8, raw_end: *const u8) {
 pub(crate) fn print_object_info(value: &StellaObject) {
     let gc = get_gc();
     let field_count = value.get_fields_count();
-    print!(" | @{:p} {:?} {}", value, value.get_tag(), field_count);
+    print!("@{:p} {:?} {}", value, value.get_tag().0, field_count);
 
     if field_count > 0 {
         print!(" | ");
@@ -179,4 +162,3 @@ pub(crate) fn print_object_info(value: &StellaObject) {
         }
     }
 }
-

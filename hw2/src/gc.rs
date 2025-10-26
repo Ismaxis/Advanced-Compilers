@@ -3,7 +3,7 @@ use std::{
     mem::swap,
 };
 
-use crate::{control_block::ControlBlock, print_memory_chunks, print_state, types::*};
+use crate::{control_block::ControlBlock, print_heap_objects, print_memory_chunks, types::*};
 
 #[derive(Debug, Default)]
 struct GCStats {
@@ -14,33 +14,43 @@ struct GCStats {
     pub max_residency_memory: usize,
     pub read_count: usize,
     pub write_count: usize,
-    pub _barrier_triggers: usize,
+    pub barrier_triggers: usize,
 }
 
 pub struct GarbageCollector {
-    max_alloc_size: usize,
+    heap_layout: Layout,
     roots: Vec<StellaVarOrField>,
     stats: GCStats,
 
-    pub(crate) from_space: *mut u8,
-    pub(crate) to_space: *mut u8,
-    pub(crate) next: *mut u8,
+    from_space: *mut u8,
+    to_space: *mut u8,
+    next: *mut u8,
+    limit: *mut u8,
+    incremental_state: Option<IncrementalState>,
+}
+
+struct IncrementalState {
+    scan: *mut u8,
 }
 
 impl GarbageCollector {
     pub fn new(max_alloc_size: usize) -> Self {
         let allocated_memory = max_alloc_size * 2;
-        let ptr = unsafe { std::alloc::System.alloc(Self::heap_layout(allocated_memory)) };
+        let heap_layout = Layout::array::<u8>(allocated_memory).unwrap();
+        let ptr = unsafe { std::alloc::System.alloc(heap_layout) };
         log::info!("heap [{:p} : {:p}]", ptr, unsafe {
             ptr.offset(Self::space_size(allocated_memory) as isize)
         });
+        let to_space = unsafe { ptr.offset(Self::space_size(allocated_memory) as isize) };
         GarbageCollector {
-            max_alloc_size: max_alloc_size,
+            heap_layout,
             roots: Vec::new(),
             stats: GCStats::default(),
             from_space: ptr,
-            to_space: unsafe { ptr.offset(Self::space_size(allocated_memory) as isize) },
+            to_space,
+            limit: to_space,
             next: ptr,
+            incremental_state: None,
         }
     }
 
@@ -50,19 +60,28 @@ impl GarbageCollector {
         } else {
             self.to_space
         };
-        unsafe { std::alloc::System.dealloc(smallest, Self::heap_layout(self.allocated_memory())) };
+        log::info!("dealloc heap: {:p}", smallest);
+        unsafe { std::alloc::System.dealloc(smallest, self.heap_layout()) };
     }
 
     pub fn allocated_memory(&self) -> usize {
-        self.max_alloc_size * 2
+        self.heap_layout.size()
     }
 
     pub(crate) fn space_size(allocated_memory: usize) -> usize {
         allocated_memory / 2
     }
 
-    fn heap_layout(allocated_memory: usize) -> Layout {
-        Layout::array::<u8>(allocated_memory).unwrap()
+    fn heap_layout(&self) -> Layout {
+        self.heap_layout
+    }
+
+    fn scan(&mut self) -> &mut *mut u8 {
+        &mut self.incremental_state.as_mut().unwrap().scan
+    }
+
+    fn limit(&mut self) -> &mut *mut u8 {
+        &mut self.limit
     }
 
     pub fn alloc(&mut self, size_in_bytes: usize) -> *mut StellaObject {
@@ -73,97 +92,224 @@ impl GarbageCollector {
         self.stats.total_allocations += 1;
         self.stats.total_allocated_memory += requested_memory_size;
 
-        if self.next.addr() + requested_memory_size
-            > self.from_space.addr() + Self::space_size(self.allocated_memory())
-        {
-            if let None = self.collect() {
-                self.out_of_memory();
+        let result = if self.is_collecting() {
+            self.allocate_during_collection(requested_memory_size)
+        } else {
+            if let Some(ptr) = self.regular_allocate(requested_memory_size) {
+                ptr
+            } else {
+                // collection was started
+                self.allocate_during_collection(requested_memory_size)
             }
-        }
+        };
 
-        // second check, if not enough was freed
-        if self.next.addr() + requested_memory_size
-            > self.from_space.addr() + Self::space_size(self.allocated_memory())
-        {
-            self.out_of_memory();
-        }
-
-        let block = ControlBlock::<StellaObject>::from_ptr(self.next);
-
-        let result = block.get_value().as_ptr();
-        self.next = unsafe { self.next.add(requested_memory_size) };
         result
     }
 
-    fn out_of_memory(&self) {
-        log::error!("out of memory {}", self.stats.gc_cycles);
-        panic!("out of memory");
-    }
+    fn allocate_during_collection(&mut self, requested_memory_size: usize) -> *mut StellaObject {
+        let new_limit = unsafe { self.limit().offset(-(requested_memory_size as isize)) };
+        *self.limit() = new_limit;
 
-    pub fn collect(&mut self) -> Option<()> {
-        log::info!("collection started");
-        if log::log_enabled!(log::Level::Debug) {
-            print_state();
-        }
-
-        self.stats.gc_cycles += 1;
-        self.next = self.to_space;
-        let mut scan = self.next;
-
-        log::trace!("scanning roots [{}]", self.roots.len());
-        for i in 0..self.roots.len() {
-            log::trace!("scan root {:p} -> {:p}", self.roots[i], *self.roots[i]);
-            if !self.is_managed_ptr((*self.roots[i]).as_ptr()) {
-                log::warn!(
-                    "skipping root that points to not managed memory {:p}",
-                    *self.roots[i]
-                );
-                continue;
-            }
-
-            let ptr = self.forward(ControlBlock::<StellaObject>::from_var_of_field(
-                &self.roots[i],
-            ))?;
-            *self.roots[i] = ptr;
-            log::trace!("root scanned {:p} -> {:p}", self.roots[i], *self.roots[i]);
-            log::trace!("");
-        }
-
-        while scan.addr() < self.next.addr() {
-            let block = ControlBlock::<StellaObject>::from_ptr(scan);
+        let mut advanced = 0;
+        while self.scan().addr() < self.next.addr() && advanced < requested_memory_size {
+            let block = ControlBlock::<StellaObject>::from_ptr(*self.scan());
             let object = block.get_value();
             let field_count = object.get_fields_count();
 
             for field_idx in 0..field_count as usize {
                 let field = &mut object.get_field(field_idx);
                 if self.is_managed_ptr(**field) {
-                    **field =
-                        self.forward(ControlBlock::<StellaObject>::from_var_of_field(field))?;
+                    **field = self.forward(ControlBlock::<StellaObject>::from_var_of_field(field));
                 }
             }
 
-            let control_block_size = ControlBlock::<StellaObject>::get_layout(
-                StellaObject::get_layout(object.get_fields_count() as usize),
-            )
+            let object_size = ControlBlock::<StellaObject>::get_layout(StellaObject::get_layout(
+                field_count as usize,
+            ))
             .size();
-            scan = unsafe { scan.add(control_block_size) }
+            let new_scan = unsafe { self.scan().add(object_size) };
+
+            if new_scan.addr() > new_limit.addr() {
+                self.out_of_memory();
+            }
+            *self.scan() = new_scan;
+            advanced += object_size;
         }
 
-        swap(&mut self.from_space, &mut self.to_space);
-
-        // TODO: remove
-        unsafe {
-            std::ptr::write_bytes(self.to_space, 0, Self::space_size(self.allocated_memory()));
+        if advanced > 0 && self.next.addr() == self.scan().addr() {
+            self.stop_collection();
         }
 
-        log::info!("collection ended");
+        new_limit as *mut StellaObject
+    }
+
+    fn regular_allocate(&mut self, requested_memory_size: usize) -> Option<*mut StellaObject> {
+        if self.next.addr() + requested_memory_size > self.limit().addr() {
+            self.init_collection();
+            return None;
+        }
+
+        let block = ControlBlock::<StellaObject>::from_ptr(self.next);
+        let result = block.get_value().as_ptr();
+        log::debug!("space left: {}", self.limit().addr() - result.addr());
+        let new_next = unsafe { self.next.add(requested_memory_size) };
+        self.next = new_next;
+        Some(result)
+    }
+
+    fn out_of_memory(&mut self) {
         if log::log_enabled!(log::Level::Debug) {
-            print_state();
+            self.print_state();
+        }
+        log::error!("out of memory {}", self.stats.gc_cycles);
+        panic!("out of memory");
+    }
+
+    fn is_collecting(&self) -> bool {
+        self.incremental_state.is_some()
+    }
+
+    pub fn init_collection(&mut self) {
+        log::info!("collection started");
+        if log::log_enabled!(log::Level::Debug) {
+            self.print_state();
         }
 
-        self.update_stats();
+        self.stats.gc_cycles += 1;
+        self.next = self.to_space;
+        self.limit = unsafe { self.to_space.add(Self::space_size(self.allocated_memory())) };
+        self.incremental_state = Some(IncrementalState {
+            scan: self.to_space,
+        });
 
-        Some(())
+        log::debug!("scanning roots [{}]", self.roots.len());
+        for i in 0..self.roots.len() {
+            log::trace!("scan root {:p} -> {:p}", self.roots[i], *self.roots[i]);
+            if !self.is_managed_ptr((*self.roots[i]).as_ptr()) {
+                // log::warn!(
+                //     "skipping root that points to not managed memory {:p}",
+                //     *self.roots[i]
+                // );
+                continue;
+            }
+
+            let ptr = self.forward(ControlBlock::<StellaObject>::from_var_of_field(
+                &self.roots[i],
+            ));
+            *self.roots[i] = ptr;
+        }
+
+        log::info!("root forward ended, next: {:p}", self.next);
+        if log::log_enabled!(log::Level::Debug) {
+            self.print_state();
+        }
+
+        // self.update_stats(); // TODO: ???
+    }
+
+    fn stop_collection(&mut self) {
+        log::info!("collection ended");
+        self.incremental_state = None;
+        swap(&mut self.from_space, &mut self.to_space);
+        if log::log_enabled!(log::Level::Debug) {
+            self.print_state();
+        }
+    }
+
+    fn forward(&mut self, p: &mut ControlBlock<StellaObject>) -> StellaReference {
+        if !self.points_to_fromspace(p.as_ptr()) {
+            return p.get_value();
+        }
+
+        let object = p.get_value();
+        let f1 = object.get_field(0);
+        if self.points_to_tospace(f1.as_ptr()) {
+            return f1;
+        }
+
+        if self.is_managed_ptr(p.as_ptr()) {
+            let field_count = p.get_value().get_fields_count() as usize;
+            self.transfer_object(
+                p.get_value(),
+                ControlBlock::<StellaObject>::from_ptr(self.next).get_value(),
+                field_count,
+            );
+
+            let object_size =
+                ControlBlock::<StellaObject>::get_layout(StellaObject::get_layout(field_count))
+                    .size();
+
+            let new_next = unsafe { self.next.add(object_size) };
+            self.next = new_next;
+        }
+        *f1
+    }
+
+    fn transfer_object(
+        &self,
+        from: &'static mut StellaObject,
+        to: &'static mut StellaObject,
+        field_count: usize,
+    ) {
+        // copy stella header
+        to.set_header(from.header);
+        // copy stella object fields
+        for field_idx in 0..field_count {
+            let qfi = &mut to.get_field(field_idx);
+            let pfi = from.get_field(field_idx);
+            **qfi = *pfi;
+        }
+        *from.get_field(0) = to;
+    }
+
+    pub fn push_root(&mut self, object: StellaVarOrField) {
+        self.roots.push(object);
+    }
+
+    pub fn pop_root(&mut self, object: StellaVarOrField) {
+        if let Some(top) = self.roots.pop() {
+            if top.as_ptr().addr() != object.as_ptr().addr() {
+                log::error!(
+                    "Tried to pop a root that does not match the top of the stack. top was: {:p}, got: {:p}",
+                    *top, *object
+                );
+            }
+        } else {
+            log::error!(
+                "Tried to pop a root from the empty stack. got: {:p}",
+                *object
+            );
+        }
+    }
+
+    pub fn read_barrier(&mut self, object: *mut StellaObject, field_index: usize) {
+        log::debug!("read_barrier: {}", self.stats.read_count);
+        self.stats.read_count += 1;
+        if !self.is_collecting() {
+            return;
+        }
+
+        self.stats.barrier_triggers += 1;
+
+        let field = ControlBlock::<StellaObject>::from_ptr(object)
+            .get_value()
+            .get_field(field_index);
+
+        if !self.points_to_fromspace(*field) {
+            return;
+        }
+
+        *field = self.forward(ControlBlock::<StellaObject>::from_var_of_field(&field));
+    }
+
+    pub fn write_barrier(
+        &mut self,
+        _object: *mut StellaObject,
+        _field_index: usize,
+        _contents: *mut std::ffi::c_void,
+    ) {
+        self.stats.write_count += 1;
+        // Not needed
     }
 
     fn update_stats(&mut self) {
@@ -188,161 +334,22 @@ impl GarbageCollector {
         );
     }
 
-    fn forward(&mut self, p: &mut ControlBlock<StellaObject>) -> Option<StellaReference> {
-        log::trace!("forward block {:p}", p.as_ptr());
-        if !self.points_to_fromspace(p.as_ptr()) {
-            log::trace!("not from fromspace {:p}", p.as_ptr());
-            return Some(p.get_value());
-        }
-        log::trace!("from fromspace {:p}", p.as_ptr());
-
-        let object = p.get_value();
-        let f1 = object.get_field(0);
-        log::trace!("first field of block {:p}: {:p}", p.as_ptr(), f1.as_ptr());
-        if self.points_to_tospace(f1.as_ptr()) {
-            log::trace!(
-                "first field from tospace {:p}: {:p}",
-                p.as_ptr(),
-                f1.as_ptr()
-            );
-            return Some(*f1);
-        }
-        log::trace!(
-            "first field not from tospace {:p}: {:p}",
-            p.as_ptr(),
-            f1.as_ptr()
-        );
-
-        if self.is_managed_ptr(p.as_ptr()) {
-            self.chase(p)?;
-        }
-        return Some(*f1);
-    }
-
-    fn chase(&mut self, mut p: &mut ControlBlock<StellaObject>) -> Option<()> {
-        log::trace!("chase iter {:p}", p.as_ptr());
-        loop {
-            log::trace!("chase moving to {:p}", self.next);
-            let q = ControlBlock::<StellaObject>::from_ptr(self.next);
-            let control_block_size = ControlBlock::<StellaObject>::get_layout(
-                StellaObject::get_layout(p.get_value().get_fields_count() as usize),
-            )
-            .size();
-            self.next = unsafe { self.next.add(control_block_size) };
-            log::trace!("new next {:p}", self.next);
-            if !self.is_managed_ptr(self.next) {
-                log::warn!(
-                    "out of memory {:p}, [{:p}, {:p}]",
-                    self.next,
-                    self.from_space,
-                    self.to_space
-                );
-                return None;
-            }
-            log::debug!(
-                "space left: {}",
-                self.to_space.addr() + Self::space_size(self.allocated_memory()) - self.next.addr()
-            );
-
-            let mut r: Option<&mut ControlBlock<StellaObject>> = None;
-            let p_object = p.get_value();
-            let q_object = q.get_value();
-            let field_count = p_object.get_fields_count();
-            log::trace!("field count {}", field_count);
-
-            if log::log_enabled!(log::Level::Trace) {
-                log::trace!("== BEFORE ==");
-                print_memory_chunks(self.from_space as *const u8, unsafe {
-                    (self.from_space as *const u8).add(Self::space_size(self.allocated_memory()))
-                });
-                log::trace!("");
-                print_memory_chunks(self.to_space as *const u8, self.next as *const u8);
-            }
-
-            // copy stella header
-            q_object.set_header(p_object.header);
-            // copy stella object fields
-            for field_idx in 0..field_count as usize {
-                let qfi = &mut q_object.get_field(field_idx);
-                let pfi = p_object.get_field(field_idx);
-                **qfi = *pfi;
-
-                if self.points_to_fromspace((*qfi).as_ptr())
-                    && !self.points_to_tospace((*(*qfi).get_field(0)).as_ptr())
-                {
-                    r = Some(ControlBlock::<StellaObject>::from_var_of_field(qfi));
-                }
-            }
-
-            *p_object.get_field(0) = q_object;
-
-            if log::log_enabled!(log::Level::Trace) {
-                log::trace!("== AFTER ==");
-                print_memory_chunks(self.from_space as *const u8, unsafe {
-                    (self.from_space as *const u8).add(Self::space_size(self.allocated_memory()))
-                });
-                log::trace!("");
-                print_memory_chunks(self.to_space as *const u8, self.next as *const u8);
-            }
-            if let Some(t) = r {
-                p = t;
-            } else {
-                break;
-            }
-        }
-        Some(())
-    }
-
-    pub fn push_root(&mut self, object: StellaVarOrField) {
-        self.roots.push(object);
-    }
-
-    pub fn pop_root(&mut self, object: StellaVarOrField) {
-        if let Some(top) = self.roots.pop() {
-            if top.as_ptr().addr() != object.as_ptr().addr() {
-                log::error!(
-                    "Tried to pop a root that does not match the top of the stack. top was: {:p}, got: {:p}",
-                    *top, *object
-                );
-            }
-        } else {
-            log::error!(
-                "Tried to pop a root from the empty stack. got: {:p}",
-                *object
-            );
-        }
-    }
-
-    pub fn read_barrier(&mut self, _object: *mut StellaObject, _field_index: usize) {
-        self.stats.read_count += 1;
-        // Not needed
-    }
-
-    pub fn write_barrier(
-        &mut self,
-        _object: *mut StellaObject,
-        _field_index: usize,
-        _contents: *mut std::ffi::c_void,
-    ) {
-        self.stats.write_count += 1;
-        // TODO: Implement write barrier logic here
-    }
-
-    pub fn print_stats(&self) {
+    pub fn print_stats(&mut self) {
         println!(
             "MAX_ALLOC_SIZE: {}\n\
             GC Cycles: {}\n\
             Total memory allocation: {} bytes ({} objects)\n\
             Maximum residency: {} bytes ({} objects)\n\
-            Total memory use: {} reads and {} writes",
-            self.max_alloc_size,
+            Total memory use: {} reads and {} writes. {} barrier triggers.",
+            self.heap_layout().size(),
             self.stats.gc_cycles,
             self.stats.total_allocated_memory,
             self.stats.total_allocations,
             self.stats.max_residency_memory,
             self.stats.max_residency,
             self.stats.read_count,
-            self.stats.write_count
+            self.stats.write_count,
+            self.stats.barrier_triggers
         );
     }
 
@@ -371,6 +378,51 @@ impl GarbageCollector {
         let end_address = space_start.addr() + Self::space_size(self.allocated_memory());
         start_address <= pointer_address && pointer_address < end_address
     }
+
+    pub(crate) fn print_state(&mut self) {
+        println!(
+            "Phase: {}",
+            if self.is_collecting() {
+                "Collecting"
+            } else {
+                "Idle"
+            }
+        );
+        println!(
+            "from_space: {:p} next: {:p} to_space: {:p}",
+            self.from_space, self.next, self.to_space
+        );
+        if self.is_collecting() {
+            println!(
+                "scan: {:p} limit: {:p}",
+                self.incremental_state.as_ref().unwrap().scan,
+                self.limit
+            );
+        }
+
+        self.print_roots();
+
+        if !self.is_collecting() {
+            println!("--- GC FromSpace State ---");
+            print_memory_chunks(self.from_space, self.next);
+            println!("--- End of FromSpace ---");
+        } else {
+            println!("--- GC FromSpace State ---");
+            print_memory_chunks(self.from_space, unsafe {
+                self.from_space
+                    .add(Self::space_size(self.allocated_memory()))
+            });
+            println!("--- End of FromSpace ---");
+
+            println!("--- GC ToSpace State ---");
+            print_memory_chunks(self.to_space, self.next);
+            println!("--- ---");
+            print_memory_chunks(*self.limit(), unsafe {
+                self.to_space.add(Self::space_size(self.allocated_memory()))
+            });
+            println!("--- End of ToSpace ---");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -378,7 +430,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_gc_state_from_hw1() {
+    fn test_gc_state_incremental() {
         env_logger::builder()
             .is_test(true)
             .filter_level(log::LevelFilter::Trace)
@@ -389,53 +441,59 @@ mod tests {
             // 1
             TestObjectSpec {
                 field_count: 3,
-                field_refs: vec![None, None, Some(7 / 3)],
+                field_refs: vec![None, Some(13 / 3), Some(4 / 3)],
             },
             // 4
             TestObjectSpec {
                 field_count: 3,
-                field_refs: vec![None, Some(19 / 3), None],
+                field_refs: vec![None, Some(10 / 3), Some(7 / 3)],
             },
             // 7
             TestObjectSpec {
                 field_count: 3,
-                field_refs: vec![None, None, Some(13 / 3)],
+                field_refs: vec![None, None, None],
             },
             // 10
             TestObjectSpec {
                 field_count: 3,
-                field_refs: vec![None, Some(16 / 3), None],
+                field_refs: vec![None, None, None],
             },
             // 13
             TestObjectSpec {
                 field_count: 3,
-                field_refs: vec![None, Some(10 / 3), Some(16 / 3)],
+                field_refs: vec![None, Some(19 / 3), Some(16 / 3)],
             },
             // 16
             TestObjectSpec {
                 field_count: 3,
-                field_refs: vec![None, Some(7 / 3), Some(25 / 3)],
+                field_refs: vec![None, None, None],
             },
             // 19
             TestObjectSpec {
                 field_count: 3,
-                field_refs: vec![None, Some(4 / 3), Some(22 / 3)],
+                field_refs: vec![None, Some(25 / 3), Some(22 / 3)],
             },
             // 22
             TestObjectSpec {
                 field_count: 3,
-                field_refs: vec![None, Some(19 / 3), Some(4 / 3)],
+                field_refs: vec![None, None, None],
             },
             // 25
             TestObjectSpec {
                 field_count: 3,
-                field_refs: vec![None, None, Some(1 / 3)],
+                field_refs: vec![None, None, None],
+            },
+            // 28
+            TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, None, None],
             },
         ];
 
         let mut objs = setup_test_objects(&mut gc, &specs);
-        gc.push_root(ptr_ptr_to_ref_ref(unsafe { objs.as_mut_ptr().add(3) }));
-        assert_eq!((gc.next.addr() - gc.from_space.addr()) / 32, 9);
+        gc.push_root(ptr_ptr_to_ref_ref(unsafe { objs.as_mut_ptr().add(19 / 3) }));
+        gc.push_root(ptr_ptr_to_ref_ref(unsafe { objs.as_mut_ptr().add(28 / 3) }));
+        assert_eq!(gc.is_collecting(), false);
         _ = setup_test_objects(
             &mut gc,
             &vec![TestObjectSpec {
@@ -443,7 +501,11 @@ mod tests {
                 field_refs: vec![None, None, None],
             }],
         );
-        assert_eq!((gc.next.addr() - gc.from_space.addr()) / 32, 10);
+        assert_eq!(gc.is_collecting(), true);
+        assert_eq!(gc.scan().addr(), gc.to_space.addr() + 32 * 1);
+        assert_eq!(gc.next.addr(), gc.to_space.addr() + 32 * 4);
+        assert_eq!(gc.limit().addr(), gc.to_space.addr() + 32 * (10 - 1));
+
         _ = setup_test_objects(
             &mut gc,
             &vec![TestObjectSpec {
@@ -451,8 +513,54 @@ mod tests {
                 field_refs: vec![None, None, None],
             }],
         );
-        gc.print_stats();
-        assert_eq!((gc.next.addr() - gc.from_space.addr()) / 32, 6 + 1);
+        assert_eq!(gc.is_collecting(), true);
+        assert_eq!(gc.limit().addr(), gc.to_space.addr() + 32 * (10 - 2));
+        assert_eq!(gc.scan().addr(), gc.to_space.addr() + 32 * 2);
+        assert_eq!(gc.next.addr(), gc.to_space.addr() + 32 * 4);
+
+        gc.pop_root(ptr_ptr_to_ref_ref(unsafe { objs.as_mut_ptr().add(28 / 3) }));
+
+        _ = setup_test_objects(
+            &mut gc,
+            &vec![
+                TestObjectSpec {
+                    field_count: 3,
+                    field_refs: vec![None, None, None],
+                },
+                TestObjectSpec {
+                    field_count: 3,
+                    field_refs: vec![None, None, None],
+                },
+            ],
+        );
+        assert_eq!(gc.is_collecting(), false);
+        assert_eq!(gc.next.addr(), gc.from_space.addr() + 32 * 4);
+
+        _ = setup_test_objects(
+            &mut gc,
+            &vec![
+                TestObjectSpec {
+                    field_count: 3,
+                    field_refs: vec![None, None, None],
+                },
+                TestObjectSpec {
+                    field_count: 3,
+                    field_refs: vec![None, None, None],
+                },
+            ],
+        );
+        assert_eq!(gc.is_collecting(), false);
+        assert_eq!(gc.next.addr(), gc.from_space.addr() + 32 * 6);
+
+        _ = setup_test_objects(
+            &mut gc,
+            &vec![TestObjectSpec {
+                field_count: 3,
+                field_refs: vec![None, None, None],
+            }],
+        );
+        gc.print_state();
+        assert_eq!(gc.is_collecting(), true);
     }
 
     #[derive(Debug, Clone)]
@@ -481,7 +589,7 @@ mod tests {
                     }
                 } else {
                     unsafe {
-                        (*ptrs[i]).set_field(field_idx, 0xBAADF00DDEADBEEFu64 as *mut StellaObject);
+                        (*ptrs[i]).set_field(field_idx, 0xFFFFFFFFFFFFFFFFu64 as *mut StellaObject);
                     }
                 }
             }
