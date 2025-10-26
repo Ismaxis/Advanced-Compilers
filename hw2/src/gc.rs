@@ -38,9 +38,6 @@ impl GarbageCollector {
         let allocated_memory = max_alloc_size * 2;
         let heap_layout = Layout::array::<u8>(allocated_memory).unwrap();
         let ptr = unsafe { std::alloc::System.alloc(heap_layout) };
-        log::info!("heap [{:p} : {:p}]", ptr, unsafe {
-            ptr.offset(Self::space_size(allocated_memory) as isize)
-        });
         let to_space = unsafe { ptr.offset(Self::space_size(allocated_memory) as isize) };
         GarbageCollector {
             heap_layout,
@@ -60,7 +57,6 @@ impl GarbageCollector {
         } else {
             self.to_space
         };
-        log::info!("dealloc heap: {:p}", smallest);
         unsafe { std::alloc::System.dealloc(smallest, self.heap_layout()) };
     }
 
@@ -98,7 +94,7 @@ impl GarbageCollector {
             if let Some(ptr) = self.regular_allocate(requested_memory_size) {
                 ptr
             } else {
-                // collection was started
+                self.init_collection();
                 self.allocate_during_collection(requested_memory_size)
             }
         };
@@ -108,6 +104,10 @@ impl GarbageCollector {
 
     fn allocate_during_collection(&mut self, requested_memory_size: usize) -> *mut StellaObject {
         let new_limit = unsafe { self.limit().offset(-(requested_memory_size as isize)) };
+        if new_limit.addr() < self.scan().addr() {
+            self.out_of_memory();
+            return std::ptr::null_mut();
+        }
         *self.limit() = new_limit;
 
         let mut advanced = 0;
@@ -128,9 +128,9 @@ impl GarbageCollector {
             ))
             .size();
             let new_scan = unsafe { self.scan().add(object_size) };
-
             if new_scan.addr() > new_limit.addr() {
                 self.out_of_memory();
+                return std::ptr::null_mut();
             }
             *self.scan() = new_scan;
             advanced += object_size;
@@ -145,7 +145,6 @@ impl GarbageCollector {
 
     fn regular_allocate(&mut self, requested_memory_size: usize) -> Option<*mut StellaObject> {
         if self.next.addr() + requested_memory_size > self.limit().addr() {
-            self.init_collection();
             return None;
         }
 
@@ -161,8 +160,7 @@ impl GarbageCollector {
         if log::log_enabled!(log::Level::Debug) {
             self.print_state();
         }
-        log::error!("out of memory {}", self.stats.gc_cycles);
-        panic!("out of memory");
+        log::error!("out of memory");
     }
 
     fn is_collecting(&self) -> bool {
@@ -182,14 +180,8 @@ impl GarbageCollector {
             scan: self.to_space,
         });
 
-        log::debug!("scanning roots [{}]", self.roots.len());
         for i in 0..self.roots.len() {
-            log::trace!("scan root {:p} -> {:p}", self.roots[i], *self.roots[i]);
             if !self.is_managed_ptr((*self.roots[i]).as_ptr()) {
-                // log::warn!(
-                //     "skipping root that points to not managed memory {:p}",
-                //     *self.roots[i]
-                // );
                 continue;
             }
 
@@ -199,18 +191,18 @@ impl GarbageCollector {
             *self.roots[i] = ptr;
         }
 
-        log::info!("root forward ended, next: {:p}", self.next);
         if log::log_enabled!(log::Level::Debug) {
             self.print_state();
         }
-
-        // self.update_stats(); // TODO: ???
     }
 
     fn stop_collection(&mut self) {
         log::info!("collection ended");
+
         self.incremental_state = None;
         swap(&mut self.from_space, &mut self.to_space);
+        self.update_stats();
+
         if log::log_enabled!(log::Level::Debug) {
             self.print_state();
         }

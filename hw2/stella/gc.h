@@ -6,7 +6,7 @@
 
 /** This macro is used whenever the runtime wants to READ a heap object's field.
  */
-#define GC_READ_BARRIER(object, field_index, read_code) (void *)(gc_read_barrier(object, field_index), read_code) // NO BARRIER
+#define GC_READ_BARRIER(object, field_index, read_code) (void *)(gc_read_barrier(object, field_index), read_code)
 /** This macro is used whenever the runtime wants to OVERWRITE a heap object's field.
  * This is NOT used when initializing object fields.
  */

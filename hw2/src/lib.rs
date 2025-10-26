@@ -80,13 +80,13 @@ pub(crate) fn write_barrier(
 
 #[no_mangle]
 pub(crate) fn push_root(object: *mut *mut StellaObject) {
-    // log::debug!("push_root: object={:p} to={:p}", object, unsafe { *object });
+    log::debug!("push_root: object={:p} to={:p}", object, unsafe { *object });
     get_gc().push_root(ptr_ptr_to_ref_ref(object));
 }
 
 #[no_mangle]
 pub(crate) fn pop_root(object: *mut *mut StellaObject) {
-    // log::debug!("pop_root: object={:p} to={:p}", object, unsafe { *object });
+    log::debug!("pop_root: object={:p} to={:p}", object, unsafe { *object });
     get_gc().pop_root(ptr_ptr_to_ref_ref(object));
 }
 
