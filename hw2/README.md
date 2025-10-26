@@ -1,6 +1,8 @@
 # Project 1. Garbage collection
 
-Copying Incremental GC
+Implementation of Copying Incremental GC for [Stella](https://fizruk.github.io/stella/) programming language
+
+[Task](ККУК_2025_Проект_Этап_1_Сборка_мусора.pdf)
 
 ## Dependencies
 
