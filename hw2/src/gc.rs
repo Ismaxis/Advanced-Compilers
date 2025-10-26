@@ -3,7 +3,7 @@ use std::{
     mem::swap,
 };
 
-use crate::{control_block::ControlBlock, print_heap_objects, print_memory_chunks, types::*};
+use crate::{control_block::ControlBlock, print_memory_chunks, types::*};
 
 #[derive(Debug, Default)]
 struct GCStats {
