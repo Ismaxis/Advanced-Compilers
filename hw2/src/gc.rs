@@ -9,7 +9,8 @@ use crate::{control_block::ControlBlock, print_memory_chunks, types::*};
 struct GCStats {
     pub total_allocations: usize,
     pub total_allocated_memory: usize,
-    pub gc_cycles: usize,
+    pub gc_cycles_started: usize,
+    pub gc_cycles_full: usize,
     pub max_residency: usize,
     pub max_residency_memory: usize,
     pub read_count: usize,
@@ -173,7 +174,9 @@ impl GarbageCollector {
             self.print_state();
         }
 
-        self.stats.gc_cycles += 1;
+        self.update_stats();
+
+        self.stats.gc_cycles_started += 1;
         self.next = self.to_space;
         self.limit = unsafe { self.to_space.add(Self::space_size(self.allocated_memory())) };
         self.incremental_state = Some(IncrementalState {
@@ -199,9 +202,10 @@ impl GarbageCollector {
     fn stop_collection(&mut self) {
         log::info!("collection ended");
 
+        self.stats.gc_cycles_full += 1;
+
         self.incremental_state = None;
         swap(&mut self.from_space, &mut self.to_space);
-        self.update_stats();
 
         if log::log_enabled!(log::Level::Debug) {
             self.print_state();
@@ -306,35 +310,47 @@ impl GarbageCollector {
 
     fn update_stats(&mut self) {
         let mut obj_count = 0;
-        let mut ptr = self.to_space;
-        while ptr.addr() < self.next.addr() {
-            let block = ControlBlock::<StellaObject>::from_ptr(ptr);
+        obj_count += self.count_objects_in_space(self.from_space, self.next);
+        let space_size = Self::space_size(self.allocated_memory());
+        obj_count +=
+            self.count_objects_in_space(self.limit, unsafe { self.from_space.add(space_size) });
+        self.stats.max_residency = std::cmp::max(self.stats.max_residency, obj_count);
+
+        self.stats.max_residency_memory = std::cmp::max(
+            self.stats.max_residency_memory,
+            (space_size - (self.limit.addr() - self.next.addr())) as usize,
+        );
+    }
+
+    fn count_objects_in_space(&mut self, mut from: *mut u8, to: *mut u8) -> usize {
+        let mut obj_count: usize = 0;
+        while from.addr() < to.addr() {
+            let block = ControlBlock::<StellaObject>::from_ptr(from);
             let object = block.get_value();
             let field_count = object.get_fields_count();
             let control_block_size = ControlBlock::<StellaObject>::get_layout(
                 StellaObject::get_layout(field_count as usize),
             )
             .size();
-            ptr = unsafe { ptr.add(control_block_size) };
+            from = unsafe { from.add(control_block_size) };
             obj_count += 1;
         }
-        self.stats.max_residency = std::cmp::max(self.stats.max_residency, obj_count);
-
-        self.stats.max_residency_memory = std::cmp::max(
-            self.stats.max_residency_memory,
-            (self.next.addr() as isize - self.to_space.addr() as isize) as usize,
-        );
+        obj_count
     }
 
     pub fn print_stats(&mut self) {
+        self.update_stats();
         println!(
-            "MAX_ALLOC_SIZE: {}\n\
-            GC Cycles: {}\n\
+            "
+            Stats for Copying Incremental GC\n\
+                                               \
+            GC Cycles: full: {} (started: {})\n\
             Total memory allocation: {} bytes ({} objects)\n\
             Maximum residency: {} bytes ({} objects)\n\
-            Total memory use: {} reads and {} writes. {} barrier triggers.",
-            self.heap_layout().size(),
-            self.stats.gc_cycles,
+            Total memory access: {} reads and {} writes\n\
+            Read barrier triggers: {}",
+            self.stats.gc_cycles_full,
+            self.stats.gc_cycles_started,
             self.stats.total_allocated_memory,
             self.stats.total_allocations,
             self.stats.max_residency_memory,
