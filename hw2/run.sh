@@ -34,6 +34,7 @@ FULL_LOC=$TEST_NAME
 
 docker run --rm -i fizruk/stella compile < tests/$TEST_NAME.st > $TEST_NAME.c
 
+mkdir -p build
 EXECUTABLE=build/$FULL_LOC-$LANG
 
 if [[ $LANG == "C" ]]; then

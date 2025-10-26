@@ -3,7 +3,10 @@ use std::{
     mem::swap,
 };
 
-use crate::{control_block::ControlBlock, print_memory_chunks, types::*};
+use crate::{
+    control_block::ControlBlock,
+    types::{StellaObject, StellaReference, StellaVarOrField},
+};
 
 #[derive(Debug, Default)]
 struct GCStats {
@@ -341,14 +344,12 @@ impl GarbageCollector {
     pub fn print_stats(&mut self) {
         self.update_stats();
         println!(
-            "
-            Stats for Copying Incremental GC\n\
-                                               \
-            GC Cycles: full: {} (started: {})\n\
-            Total memory allocation: {} bytes ({} objects)\n\
-            Maximum residency: {} bytes ({} objects)\n\
-            Total memory access: {} reads and {} writes\n\
-            Read barrier triggers: {}",
+            "\t[Copying Incremental GC]\n\
+            \tGC Cycles: full: {} (started: {})\n\
+            \tTotal memory allocation: {} bytes ({} objects)\n\
+            \tMaximum residency: {} bytes ({} objects)\n\
+            \tTotal memory access: {} reads and {} writes\n\
+            \tRead barrier triggers: {}",
             self.stats.gc_cycles_full,
             self.stats.gc_cycles_started,
             self.stats.total_allocated_memory,
@@ -388,53 +389,81 @@ impl GarbageCollector {
     }
 
     pub(crate) fn print_state(&mut self) {
+        let space_size = Self::space_size(self.allocated_memory());
+        println!("================ GC STATE ================");
+        println!("Heap boundaries:");
+        println!("  from_space: {:p} - {:p}", self.from_space, unsafe {
+            self.from_space.add(space_size)
+        });
+        println!("  to_space:   {:p} - {:p}", self.to_space, unsafe {
+            self.to_space.add(space_size)
+        });
+        println!("Internal GC pointers:");
         println!(
-            "Phase: {}",
-            if self.is_collecting() {
-                "Collecting"
-            } else {
-                "Idle"
-            }
+            "  scan:  {:p}",
+            self.incremental_state
+                .as_ref()
+                .map_or(std::ptr::null_mut(), |s| s.scan)
         );
-        println!(
-            "from_space: {:p} next: {:p} to_space: {:p}",
-            self.from_space, self.next, self.to_space
+        println!("  next:  {:p}", self.next);
+        println!("  limit: {:p}", self.limit);
+
+        Self::print_objects_in_space(
+            self.from_space,
+            unsafe { self.from_space.add(space_size) },
+            "from-space",
         );
-        if self.is_collecting() {
-            println!(
-                "scan: {:p} limit: {:p}",
-                self.incremental_state.as_ref().unwrap().scan,
-                self.limit
-            );
-        }
+        Self::print_objects_in_space(
+            self.to_space,
+            unsafe { self.to_space.add(space_size) },
+            "to-space",
+        );
 
         self.print_roots();
 
-        if !self.is_collecting() {
-            println!("--- GC FromSpace State ---");
-            print_memory_chunks(self.from_space, self.next);
-            println!("--- End of FromSpace ---");
-        } else {
-            println!("--- GC FromSpace State ---");
-            print_memory_chunks(self.from_space, unsafe {
-                self.from_space
-                    .add(Self::space_size(self.allocated_memory()))
-            });
-            println!("--- End of FromSpace ---");
+        let used = self.limit.addr() - self.next.addr();
+        let free = space_size - used;
+        println!("Allocated memory: {} bytes", used);
+        println!("Free memory:      {} bytes", free);
+        println!("==========================================");
+    }
 
-            println!("--- GC ToSpace State ---");
-            print_memory_chunks(self.to_space, self.next);
-            println!("--- ---");
-            print_memory_chunks(*self.limit(), unsafe {
-                self.to_space.add(Self::space_size(self.allocated_memory()))
-            });
-            println!("--- End of ToSpace ---");
+    fn print_objects_in_space(from: *mut u8, to: *mut u8, space_name: &str) {
+        println!("--- Objects in {} ---", space_name);
+        let mut ptr = from;
+        while ptr.addr() < to.addr() {
+            let block = ControlBlock::<StellaObject>::from_ptr(ptr);
+            let object = block.get_value();
+            let field_count = object.get_fields_count();
+            print!(
+                "@ {:p} header: [<{:^7}>, {}] fields: [",
+                ptr,
+                object.get_tag().to_string(),
+                object.get_fields_count(),
+            );
+            for i in 0..field_count as usize {
+                let field_ptr = object.get_field(i);
+                print!("{:p}", *field_ptr);
+                if i + 1 < field_count as usize {
+                    print!(", ");
+                }
+            }
+            print!("]");
+            print!(" ({})", space_name);
+            println!();
+            let obj_size = ControlBlock::<StellaObject>::get_layout(StellaObject::get_layout(
+                field_count as usize,
+            ))
+            .size();
+            ptr = unsafe { ptr.add(obj_size) };
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::types::ptr_ptr_to_ref_ref;
+
     use super::*;
 
     #[test]

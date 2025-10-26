@@ -3,41 +3,14 @@ use std::alloc::Layout;
 use c_enum::c_enum;
 
 #[repr(C)]
-#[derive(PartialEq, Eq)]
 pub struct StellaObject {
     pub header: i32,
     pub fields: StellaReference,
 }
 
-c_enum! {
-    #[derive(Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum StellaTag: i32 {
-        TAG_ZERO,
-        TAG_SUCC,
-        TAG_FALSE,
-        TAG_TRUE,
-        TAG_FN,
-        TAG_REF,
-        TAG_UNIT,
-        TAG_TUPLE,
-        TAG_INL,
-        TAG_INR,
-        TAG_EMPTY,
-        TAG_CONS,
-    }
-}
-
 pub type StellaReference = &'static mut StellaObject;
 
 pub type StellaVarOrField = &'static mut StellaReference;
-
-fn from_ptr_to_ref(object: *const StellaReference) -> StellaVarOrField {
-    unsafe { std::mem::transmute::<*const StellaReference, &'static mut StellaReference>(object) }
-}
-
-pub(crate) fn ptr_ptr_to_ref_ref(object: *mut *mut StellaObject) -> StellaVarOrField {
-    unsafe { std::mem::transmute::<*mut *mut StellaObject, &'static mut StellaReference>(object) }
-}
 
 impl StellaObject {
     const FIELD_COUNT_MASK: i32 = (1 << 8) - (1 << 4);
@@ -57,7 +30,7 @@ impl StellaObject {
     }
 
     pub fn get_field(&self, i: usize) -> StellaVarOrField {
-        from_ptr_to_ref(unsafe { std::ptr::addr_of!(self.fields).add(i) })
+        ptr_to_ref(unsafe { std::ptr::addr_of!(self.fields).add(i) })
     }
 
     pub fn as_ptr(&self) -> *mut Self {
@@ -82,5 +55,52 @@ impl StellaObject {
     pub unsafe fn set_field(&mut self, index: usize, value: *mut Self) {
         let fields_ptr = std::ptr::addr_of!(self.fields) as *mut *mut Self;
         *fields_ptr.add(index) = value;
+    }
+}
+
+fn ptr_to_ref(object: *const StellaReference) -> StellaVarOrField {
+    unsafe { std::mem::transmute::<*const StellaReference, &'static mut StellaReference>(object) }
+}
+
+pub(crate) fn ptr_ptr_to_ref_ref(object: *mut *mut StellaObject) -> StellaVarOrField {
+    unsafe { std::mem::transmute::<*mut *mut StellaObject, &'static mut StellaReference>(object) }
+}
+
+c_enum! {
+    #[derive(Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum StellaTag: i32 {
+        TAG_ZERO,
+        TAG_SUCC,
+        TAG_FALSE,
+        TAG_TRUE,
+        TAG_FN,
+        TAG_REF,
+        TAG_UNIT,
+        TAG_TUPLE,
+        TAG_INL,
+        TAG_INR,
+        TAG_EMPTY,
+        TAG_CONS,
+    }
+}
+
+impl std::fmt::Display for StellaTag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match *self {
+            StellaTag::TAG_ZERO => "ZERO",
+            StellaTag::TAG_SUCC => "SUCC",
+            StellaTag::TAG_FALSE => "FALSE",
+            StellaTag::TAG_TRUE => "TRUE",
+            StellaTag::TAG_FN => "FN",
+            StellaTag::TAG_REF => "REF",
+            StellaTag::TAG_UNIT => "UNIT",
+            StellaTag::TAG_TUPLE => "TUPLE",
+            StellaTag::TAG_INL => "INL",
+            StellaTag::TAG_INR => "INR",
+            StellaTag::TAG_EMPTY => "EMPTY",
+            StellaTag::TAG_CONS => "CONS",
+            _ => "UNKNOWN",
+        };
+        write!(f, "{s}")
     }
 }

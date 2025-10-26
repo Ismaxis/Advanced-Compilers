@@ -1,6 +1,6 @@
 use std::alloc::Layout;
 
-type ControlBlockHeader = ();
+type ControlBlockHeader = (); // Not needed ;(
 
 #[repr(C)]
 pub struct ControlBlock<T> {
