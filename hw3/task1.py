@@ -2,7 +2,7 @@ from collections import defaultdict
 import json
 
 
-f = """с = a - b
+f = """c = a - b
 d = a * b
 e = a
 h = a - b
@@ -112,8 +112,6 @@ def build(k):
         edges.add((k, rhs))
         right = build(rhs)
     
-    if k == 10:
-        print("!!!", k, lhs, rhs)
     return {"left": left, "right": right, "op": op, "index": k}
 
 
