@@ -1,4 +1,7 @@
 #import "@preview/ctheorems:1.1.3": *
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
+#import fletcher.shapes: *
+#import "@preview/codelst:2.0.2": sourcecode
 
 #show: thmrules.with(qed-symbol: $square$)
 #set page(height: auto, margin: 1.5cm)
@@ -6,17 +9,232 @@
 #let task = thmbox("theorem", "Задание", fill: rgb("#eeffee")).with(numbering: none)
 #let solution = thmproof("proof", "Решение")
 
-#align(center, text[= Максим Исаев])
-#align(center, text[== Темы 6–10. Теоретическое задание])
+#align(center)[= Максим Исаев]
+#align(center)[== Темы 6–10. Теоретическое задание]
 
 #task("1")[
+  Предложите расширение алгоритма каскадного анализа общих подвыражний:
+  #enum(
+    numbering: "1.",
+    enum.item[
+      Расширьте алгоритм поддержкой инструкций копирования и коммутативных операций.
+      Для коммутативных операций, записи в таблицы рекомендуется хранить в каноническом виде (например, аргументы должны быть упорядочены каким-то образом). Приведите псевдокод расширенной версии алгоритма.
+    ],
+    enum.item[
+      Примените расширенный алгоритм к следующему блоку:
+      #sourcecode[
+        ```
+        с = a - b
+        d = a × b
+        e = a
+        h = a - b
+        a = d
+        f = b × e
+        g = e - b
+        d = a + d
+        a = b
+        u = e - a
+        v = c × h
+        c = e - a
+        u = c × u
+        h = e - a
+        c = g × v
+        v = d + f
+        f = h × u
+        a = v + c
+        b = a × f
+        ```
+      ]
+      #enum(
+        numbering: "(a)",
+        enum.item[Выпишите таблицу значений],
+        enum.item[Нарисуйте граф, соответствующий таблице],
+      )
+    ],
+  )
 
 ]
-#solution()[]
+#solution()[
+  #enum(
+    numbering: "1.",
+    enum.item[
+      #sourcecode[
+        ```py
+        T = empty
+        N = 0
+
+        for 'a = rhs' in the block:
+            if rhs is variable: # handle copy instruction
+                if rhs in T:
+                    T[a] = T[rhs]
+                else:
+                    N = N + 1
+                    T[a] = N
+                continue
+
+            b, op, c = rhs.parse()
+            if b in T:
+                nb = T[b]
+            else:
+                N = N + 1
+                nb = N
+                T[b] = nb
+            if c in T:
+                nc = T[c]
+            else:
+                N = N + 1
+                nc = N
+                T[c] = nc
+
+            if op is commutative: # handle commutative operation
+                nb, nc = min(nb, nc), max(nb, nc) # canonical order
+
+            if (nb, op, nc) in T:
+                m = T[(nb, op, nc)]
+                T[a] = m
+                mark 'a = b <op> c' as a common subexpression
+            else:
+                N = N + 1
+                T[(nb, op, nc)] = N
+                T[a] = N
+        ```
+      ]
+    ],
+    enum.item[
+      #let node = fletcher.node.with(shape: rect, stroke: luma(50%))
+      #let var = fletcher.node.with()
+      #let idx = fletcher.node.with(fill: white, radius: 7pt, stroke: luma(60%))
+      #let strike = strike.with(stroke: red + 1pt, extent: 4pt)
+
+      #grid(
+        columns: (1fr, 2fr),
+        align: (right, left),
+        figure(
+          caption: [Таблица значений],
+          box(
+            stroke: black,
+            outset: 5pt,
+            grid(
+              columns: 3,
+              align: (left, center, right),
+              row-gutter: 0.5em,
+
+              strike[a], $arrow.r.bar$, [1],
+              strike[b], $arrow.r.bar$, [2],
+              [(1, $minus$, 2)], $arrow.r.bar$, [3],
+              strike[c], $arrow.r.bar$, [3],
+              [(1, $times$, 2)], $arrow.r.bar$, [4],
+              strike[d], $arrow.r.bar$, [4],
+              [e], $arrow.r.bar$, [1],
+              strike[h], $arrow.r.bar$, [3],
+              strike[a], $arrow.r.bar$, [4],
+              strike[f], $arrow.r.bar$, [4],
+              [g], $arrow.r.bar$, [3],
+              [(4, $plus$, 4)], $arrow.r.bar$, [5],
+              [d], $arrow.r.bar$, [5],
+              strike[a], $arrow.r.bar$, [2],
+              strike[u], $arrow.r.bar$, [3],
+              strike[c], $arrow.r.bar$, [6],
+              [(3, $times$, 6)], $arrow.r.bar$, [7],
+              strike[v], $arrow.r.bar$, [7],
+              strike[c], $arrow.r.bar$, [3],
+              [(3, $times$, 3)], $arrow.r.bar$, [8],
+              [u], $arrow.r.bar$, [8],
+              [h], $arrow.r.bar$, [3],
+              [(3, $times$, 7)], $arrow.r.bar$, [9],
+              [c], $arrow.r.bar$, [9],
+              [(4, $plus$, 5)], $arrow.r.bar$, [10],
+              [v], $arrow.r.bar$, [10],
+              [(3, $times$, 8)], $arrow.r.bar$, [11],
+              [f], $arrow.r.bar$, [11],
+              [(9, $plus$, 10)], $arrow.r.bar$, [12],
+              [a], $arrow.r.bar$, [12],
+              [(11, $times$, 12)], $arrow.r.bar$, [13],
+              [b], $arrow.r.bar$, [13],
+            ),
+          ),
+        ),
+        figure(
+          caption: [Граф, соответствующий таблице],
+          diagram(
+            node((-1, 0), $times$, name: <13>),
+            node((-2, 1), $plus$, name: <12>),
+            node((0, 2), $times$, name: <11>),
+            node((1, 3), $times$, name: <8>),
+            node((-1, 2), $times$, name: <9>),
+            node((-1, 3), $times$, name: <7>),
+            node((-1, 6), $c_0$, name: <6>),
+            node((-2, 2), $plus$, name: <10>),
+            node((-3, 3), $plus$, name: <5>),
+            node((-2, 4), $times$, name: <4>),
+            node((0, 4), $minus$, name: <3>),
+            node((-2, 6), $a_0$, name: <1>),
+            node((0, 6), $b_0$, name: <2>),
+
+            var((-2.5, 5.5), "e", name: <e>),
+            var((1, 3.75), "g", name: <g>),
+            var((-3, 2), "d", name: <d>),
+            var((1, 2), "u", name: <u>),
+            var((1, 4.25), "h", name: <h>),
+            var((-1, 1), "c", name: <c>),
+            var((-2.5, 1.5), "v", name: <v>),
+            var((0.5, 1.5), "f", name: <f>),
+            var((-2.5, 0.5), "a", name: <a>),
+            var((-2, 0), "b", name: <b>),
+
+            edge(<e>, <1>, "-|>", stroke: red),
+            edge(<g>, <3>, "-|>", stroke: red),
+            edge(<d>, <5>, "-|>", stroke: red),
+            edge(<u>, <8>, "-|>", stroke: red),
+            edge(<h>, <3>, "-|>", stroke: red),
+            edge(<c>, <9>, "-|>", stroke: red),
+            edge(<v>, <10>, "-|>", stroke: red),
+            edge(<f>, <11>, "-|>", stroke: red),
+            edge(<a>, <12>, "-|>", stroke: red),
+            edge(<b>, <13>, "-|>", stroke: red),
+
+            idx(<13.north-east>, [13]),
+            idx(<12.north-east>, [12]),
+            idx(<11.south-west>, [11]),
+            idx(<8.north-east>, [8]),
+            idx(<9.north-east>, [9]),
+            idx(<7.north-east>, [7]),
+            idx(<6.north-east>, [6]),
+            idx(<10.north-east>, [10]),
+            idx(<5.south-west>, [5]),
+            idx(<4.south-west>, [4]),
+            idx(<3.south-east>, [3]),
+            idx(<1.north-east>, [1]),
+            idx(<2.north-east>, [2]),
+
+            edge(<13>, <11>, "-|>"),
+            edge(<13>, <12>, "-|>"),
+            edge(<12>, <9>, "-|>"),
+            edge(<12>, <10>, "-|>"),
+            edge(<10>, <4>, "-|>"),
+            edge(<10>, <5>, "-|>"),
+            edge(<5>, <4>, "-|>", bend: -30deg),
+            edge(<5>, <4>, "-|>", bend: 30deg),
+            edge(<4>, <1>, "-|>"),
+            edge(<4>, <2>, "-|>"),
+            edge(<9>, <7>, "-|>"),
+            edge(<7>, <6>, "-|>"),
+            edge(<7>, <3>, "-|>"),
+            edge(<9>, <3>, "-|>"),
+            edge(<3>, <2>, "-|>"),
+            edge(<3>, <1>, "-|>"),
+            edge(<11>, <3>, "-|>"),
+            edge(<11>, <8>, "-|>"),
+            edge(<8>, <3>, "-|>", bend: -30deg),
+            edge(<8>, <3>, "-|>", bend: 30deg),
+          ),
+        ),
+      )
+    ],
+  )
+]
 
 #task("2")[
-  #import "@preview/codelst:2.0.2": sourcecode
-
   Оптимизируйте следующую программу, используя SSA-представление
 
   #sourcecode[
@@ -92,10 +310,8 @@
   )
 ]
 #solution()[
-  #import "@preview/fletcher:0.5.8" as fletcher: diagram, edge, node
-  #import fletcher.shapes: *
-  #let node = node.with(shape: rect, stroke: luma(90%))
-  #let idx = fletcher.node.with()
+  #let node = fletcher.node.with(shape: rect, stroke: luma(90%))
+  #let idx = fletcher.node.with(fill: white, radius: 7pt, stroke: luma(60%))
 
   #enum(
     numbering: "1.",
@@ -207,7 +423,7 @@
                 [` `],
                 name: <12>,
               ),
-              idx(<12.north-east>, [12]),
+              idx(<12.south-west>, [12]),
               node(
                 (2, 1),
                 [```
