@@ -42,20 +42,12 @@ if [[ $LANG == "C" ]]; then
 elif [[ $LANG == "rust" ]]; then
     export RUST_BACKTRACE=1 
     if [[ $BUILD == "debug" ]]; then
-        cargo build 2> build/cargo.log 1> build/cargo.log
+        docker run --rm -v "$PWD":/volume -w /volume rust cargo build
     else 
-        cargo build --$BUILD 2> build/cargo.log 1> build/cargo.log
+        docker run --rm -v "$PWD":/volume -w /volume rust cargo build --$BUILD
     fi
-    gcc -std=c11 \
-        $FLAGS -DMAX_ALLOC_SIZE=$MAX_ALLOC_SIZE \
-        $FULL_LOC.c stella/runtime.c -Ltarget/$BUILD -lstella_gc -o $EXECUTABLE
-
-    export LD_LIBRARY_PATH=target/$BUILD:$LD_LIBRARY_PATH
-    export RUST_LOG=error
+    docker run --rm -v "$PWD":/volume -w /volume gcc:15.2 /bin/bash -c "gcc -std=c11 \
+        $FLAGS -DMAX_ALLOC_SIZE=$MAX_ALLOC_SIZE $FULL_LOC.c stella/runtime.c \
+        -Ltarget/$BUILD -lstella_gc -o $EXECUTABLE && \
+        echo $INPUT | LD_LIBRARY_PATH=./target/$BUILD:\$LD_LIBRARY_PATH ./$EXECUTABLE 2>&1"
 fi
-
-rm $FULL_LOC.c
-
-echo $INPUT | ./$EXECUTABLE 2>&1
-
-rm $EXECUTABLE
